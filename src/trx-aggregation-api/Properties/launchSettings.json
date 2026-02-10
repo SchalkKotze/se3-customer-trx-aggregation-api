@@ -1,0 +1,61 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:55194",
+      "sslPort": 44321
+    }
+  },
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5295",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "LOG_LEVEL": "TRACE",
+        "SWAGGER_KILLSWITCH": "false",
+        "EMAIL_API_AAD_RESOURCE_ID": "api://7089ed5b-e671-4153-af66-8b7115fce493",
+        "EMAIL_API_AAD_INSTANCE": "https://login.microsoftonline.com/",
+        "EMAIL_API_AAD_TENANT_ID": "a428b46f-c29b-4a6c-85f1-8e05c10b6671",
+        "EMAIL_BUCKET_NAME": "afs1-r-184469427025-npr-crm-s3-email-attachment-dev",
+        "SQS_CHUNK_SIZE": "100",
+        "SQS_EMAIL_SEND_QUEUE": "https://sqs.af-south-1.amazonaws.com/184469427025/r-184469427025-npr-crm-sqs-email-send-dev",
+        "EMAIL_API_HTML_ROLES": "FSC_EMAIL_ROLE",
+        "EMAIL_API_TEMPLATE_ROLES": "CRM_EMAIL_ROLE"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7003;http://localhost:5295",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "LOG_LEVEL": "TRACE",
+        "SWAGGER_KILLSWITCH": "false",
+        "EMAIL_API_AAD_RESOURCE_ID": "api://7089ed5b-e671-4153-af66-8b7115fce493",
+        "EMAIL_API_AAD_INSTANCE": "https://login.microsoftonline.com/",
+        "EMAIL_API_AAD_TENANT_ID": "a428b46f-c29b-4a6c-85f1-8e05c10b6671",
+        "EMAIL_BUCKET_NAME": "afs1-r-184469427025-npr-crm-s3-email-attachment-dev",
+        "SQS_CHUNK_SIZE": "100",
+        "SQS_EMAIL_SEND_QUEUE": "https://sqs.af-south-1.amazonaws.com/184469427025/r-184469427025-npr-crm-sqs-email-send-dev",
+        "EMAIL_API_HTML_ROLES": "FSC_EMAIL_ROLE",
+        "EMAIL_API_TEMPLATE_ROLES": "CRM_EMAIL_ROLE"
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
