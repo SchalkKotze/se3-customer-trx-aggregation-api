@@ -32,7 +32,7 @@ public class AggregationController : ControllerBase
         _aggregateService = aggregateService ?? throw new ArgumentNullException(nameof(aggregateService));
     }
     
-    [HttpPost("unauth-customers")]
+    [HttpGet("unauth-customers")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> UnauthAggregateListAsync(SendAggregateRequest request, CancellationToken token)
@@ -59,7 +59,7 @@ public class AggregationController : ControllerBase
         }
     }
     
-    [HttpPost("unauth-customer")]
+    [HttpGet("unauth-customer")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> UnauthAggregateSingleAsync(string request, CancellationToken token)
@@ -129,20 +129,20 @@ public class AggregationController : ControllerBase
     }
     
     [Authorize(Policy = "HtmlPolicy")]
-    [HttpPost("send")]
+    [HttpGet("customers")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> AggregateAsync(SendAggregateRequest request, CancellationToken token)
     {
         try
         {
-            var aggregateDto = _mapper.Map<CustomerAggregationCommand>(request)
+            var aggregationCommand = _mapper.Map<CustomerAggregationCommand>(request)
                 .WithAppId(GetClaimValue("appid"))
                 .WithAppDisplayName(GetClaimValue("app_displayname"))
                 .WithUserRoles(GetRoleValues())
                 .WithCorrelationId(string.Empty);
 
-            var responseModel = await _aggregateService.AggregateClientsAsync(aggregateDto, token);
+            var responseModel = await _aggregateService.AggregateClientsAsync(aggregationCommand, token);
             
             if (responseModel.IsValid)
             {
