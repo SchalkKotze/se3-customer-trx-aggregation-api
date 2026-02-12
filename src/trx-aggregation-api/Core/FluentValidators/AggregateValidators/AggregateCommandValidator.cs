@@ -5,9 +5,9 @@ using FluentValidation;
 
 namespace aggregate_api.Core.FluentValidators;
 
-public class AggregateDtoValidator : AbstractValidator<CustomerAggregationCommand>
+public class AggregateCommandValidator : AbstractValidator<CustomerAggregationCommand>
 {
-    public AggregateDtoValidator()
+    public AggregateCommandValidator()
     {
         RuleFor(entity => entity.CustomerIds)
             .NotNull()

@@ -7,14 +7,12 @@ using aggregate_api.Core.Authentication;
 using aggregate_api.Core.AutoMapper;
 using aggregate_api.Core.Filters;
 using aggregate_api.Core.FluentValidators;
-using aggregate_api.Core.HashiCorp;
 using aggregate_api.Core.Serilog;
 using aggregate_api.Core.Swagger;
 using aggregate_api.Infrastructure;
 using aggregate_api.Infrastructure.Contracts;
 using aggregate_api.Infrastructure.ExternalData;
 
-HashiCorpBase.LoadSecrets("/vault/secrets/vaua");
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,8 +51,6 @@ builder.Services
 
 // Register Infrastructure Services
 builder.Services
-    .AddTransient<IAwsBucketService, AwsBucketService>()
-    .AddTransient<IAwsQueueService, AwsQueueService>()
     .AddSingleton<IEnvironmentService, EnvironmentService>()
     .AddSingleton<ILoggingService, LoggingService>();
 
@@ -71,10 +67,10 @@ if (!string.IsNullOrEmpty(killswitch) && !bool.Parse(killswitch))
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Email API V1");
-        c.SwaggerEndpoint("/swagger/v2/swagger.json", "Email API V2");
-        c.SwaggerEndpoint("/swagger/v3/swagger.json", "Email API V3");
-        c.SwaggerEndpoint("/swagger/v4/swagger.json", "Email API V4");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Customer Aggregation API V1");
+        c.SwaggerEndpoint("/swagger/v2/swagger.json", "Customer Aggregation API V2");
+        c.SwaggerEndpoint("/swagger/v3/swagger.json", "Customer Aggregation API V3");
+        c.SwaggerEndpoint("/swagger/v4/swagger.json", "Customer Aggregation API V4");
     });
 }
 

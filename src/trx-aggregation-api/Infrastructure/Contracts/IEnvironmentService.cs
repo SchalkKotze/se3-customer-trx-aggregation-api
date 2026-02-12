@@ -12,14 +12,8 @@ public interface IEnvironmentService
     string InstanceUrl { get; }
     string TenantId { get; }
     
-    // SQS Configs
-    
-    string SqsRegion { get; }
-    string SqsEmailSendQueue { get; }
-    
-    // S3 Configs
-    
-    string BucketRegion { get; }
-    string RetailBucketName { get; }
-    string BusinessBucketName { get; }
+    // External Transaction Sources Connection details
+    string SourceBankConnection { get; }
+    string SourceCreditConnection { get; }
+    string SourceInvestmentConnection { get; }
 }

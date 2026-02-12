@@ -6,11 +6,11 @@ public static class AuthenticationBase
 {
     public static IServiceCollection UseCustomJwtBearer(this IServiceCollection services)
     {
-        var aadResourceId = Environment.GetEnvironmentVariable("EMAIL_API_AAD_RESOURCE_ID");
-        var aadInstance = Environment.GetEnvironmentVariable("EMAIL_API_AAD_INSTANCE");
-        var aadTenantId = Environment.GetEnvironmentVariable("EMAIL_API_AAD_TENANT_ID");
-        var htmlRoles = Environment.GetEnvironmentVariable("EMAIL_API_HTML_ROLES");
-        var templateRoles = Environment.GetEnvironmentVariable("EMAIL_API_TEMPLATE_ROLES");
+        var aadResourceId = Environment.GetEnvironmentVariable("AGGREGATE_API_AAD_RESOURCE_ID");
+        var aadInstance = Environment.GetEnvironmentVariable("AGGREGATE_API_AAD_INSTANCE");
+        var aadTenantId = Environment.GetEnvironmentVariable("AGGREGATE_API_AAD_TENANT_ID");
+        var htmlRoles = Environment.GetEnvironmentVariable("AGGREGATE_API_HTML_ROLES");
+        var templateRoles = Environment.GetEnvironmentVariable("AGGREGATE_API_TEMPLATE_ROLES");
 
         if (string.IsNullOrWhiteSpace(aadResourceId) || string.IsNullOrWhiteSpace(aadInstance) || string.IsNullOrWhiteSpace(aadTenantId))
         {

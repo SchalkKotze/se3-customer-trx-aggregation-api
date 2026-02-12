@@ -47,7 +47,7 @@ public class AggregateService : IAggregateService
         var r = new ResponseModel<List<AggregatedCustomerTransactionsDto>>(
             new List<AggregatedCustomerTransactionsDto>());
         
-        r.MergeResponses(_fluentValidationService.ValidateAggreateDto(
+        r.MergeResponses(_fluentValidationService.ValidateAggregateCommand(
             customerAggregationCommand, _aggregateDtoValidator));
 
         if (!r.IsValid) return r;

@@ -39,7 +39,7 @@ public class AzureTokenService : IAzureTokenService
         
         _loggingService.LogTrace(LoggingMessages.Executing("AzureTokenService", "RequestAccessTokenAsync"));
         
-        r.MergeResponses(_fluentValidationService.ValidateAggreateDto(generateTokenDto, _generateTokenDtoValidator));
+        r.MergeResponses(_fluentValidationService.ValidateAggregateCommand(generateTokenDto, _generateTokenDtoValidator));
         
         if (r.IsValid && !token.IsCancellationRequested)
         {

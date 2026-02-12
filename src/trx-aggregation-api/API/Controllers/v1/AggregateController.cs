@@ -32,7 +32,7 @@ public class AggregationController : ControllerBase
         _aggregateService = aggregateService ?? throw new ArgumentNullException(nameof(aggregateService));
     }
     
-    [HttpGet("unauth-customers")]
+    [HttpPost("unauth-customers")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> UnauthAggregateListAsync(SendAggregateRequest request, CancellationToken token)
@@ -129,7 +129,7 @@ public class AggregationController : ControllerBase
     }
     
     [Authorize(Policy = "HtmlPolicy")]
-    [HttpGet("customers")]
+    [HttpPost("customers")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> AggregateAsync(SendAggregateRequest request, CancellationToken token)

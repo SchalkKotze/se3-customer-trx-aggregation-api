@@ -12,7 +12,7 @@ public static class FluentValidatorBase
     {
         services
             .AddTransient<IFluentValidationService, FluentValidationService>()
-            .AddTransient<IValidator<CustomerAggregationCommand>, AggregateDtoValidator>()
+            .AddTransient<IValidator<CustomerAggregationCommand>, AggregateCommandValidator>()
             .AddTransient<IValidator<GenerateTokenDto>, GenerateTokenValidator>();
         
         return services;

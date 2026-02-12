@@ -8,7 +8,7 @@ public static class SwaggerBase
 {
     public static IServiceCollection InjectSwaggerFilters(this IServiceCollection services)
     {
-        services.AddSingleton<EmailResponseGroup>();
+        services.AddSingleton<AggregationResponseGroup>();
         services.AddSingleton<TokenResponseGroup>();
         
         services.AddSwaggerGen(c =>
@@ -16,29 +16,29 @@ public static class SwaggerBase
             c.SwaggerDoc("v1", new OpenApiInfo
             {
                 Version = "v1",
-                Title = "Email API V1",
-                Description = "Endpoints for version 1 of Email API"
+                Title = "Customer Aggregation API V1",
+                Description = "Endpoints for version 1 of Customer Aggregation API"
             });
 
             c.SwaggerDoc("v2", new OpenApiInfo
             {
                 Version = "v2",
-                Title = "Email API V2",
-                Description = "Endpoints for version 2 of Email API"
+                Title = "Customer Aggregation API V2",
+                Description = "Endpoints for version 2 of Customer Aggregation API"
             });
 
             c.SwaggerDoc("v3", new OpenApiInfo
             {
                 Version = "v3",
-                Title = "Email API V3",
-                Description = "Endpoints for version 3 of Email API"
+                Title = "Customer Aggregation API V3",
+                Description = "Endpoints for version 3 of Customer Aggregation API"
             });
             
             c.SwaggerDoc("v4", new OpenApiInfo
             {
                 Version = "v4",
-                Title = "Email API V4",
-                Description = "Endpoints for version 4 of Email API"
+                Title = "Customer Aggregation API V4",
+                Description = "Endpoints for version 4 of Customer Aggregation API"
             });
 
             c.CustomSchemaIds(type => type.FullName);

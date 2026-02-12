@@ -15,7 +15,7 @@ public class FluentValidationService : IFluentValidationService
         _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
     }
     
-    public ResponseModel ValidateAggreateDto<TDto>(TDto dto, IValidator<TDto> validator)
+    public ResponseModel ValidateAggregateCommand<TDto>(TDto dto, IValidator<TDto> validator)
     {
         _loggingService.LogTrace(LoggingMessages.Executing("FluentValidationService", "ValidateAggregateDto"));
 
