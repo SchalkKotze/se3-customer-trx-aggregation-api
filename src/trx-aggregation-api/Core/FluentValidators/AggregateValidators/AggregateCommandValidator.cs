@@ -14,8 +14,6 @@ public class AggregateCommandValidator : AbstractValidator<CustomerAggregationCo
             .WithMessage(string.Format(ValidationMessages.NullCheck, "CustomerId"))
             .NotEmpty()
             .WithMessage(string.Format(ValidationMessages.EmptyCheck, "CustomerId"));
-        // .GreaterThan(99999999)
-        // .WithMessage(string.Format(ValidationMessages.MaximumLengthCheck, "CustomerId", "9"));
 
     }
 }

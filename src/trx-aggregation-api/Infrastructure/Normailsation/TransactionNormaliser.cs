@@ -27,7 +27,7 @@ public class TransactionNormaliser : ITransactionNormaliser
             Amount = trx.Amount,
             Currency = "ZAR",
             TransactionDate = trx.TransactiopnDate,
-            Description = trx.Descriptiopn,
+            Description = trx.Description,
             Source = trx.Source
         };
     }

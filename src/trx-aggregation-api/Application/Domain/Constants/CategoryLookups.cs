@@ -4,7 +4,7 @@ public class CategoryLookups
 {
     public static readonly string[] GroceryKeywords =
     {
-        "spar","checker","foodlovers"  
+        "spar","checkers","foodlovers"  
     };
     public static readonly string[] EntertainmentKeywords =
     {

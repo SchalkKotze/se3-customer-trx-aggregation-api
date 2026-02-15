@@ -13,7 +13,7 @@ public class BankSource : ITransactionSource
                 Source = "BX",
                 CustomerID = customerID,
                 Amount = 130.99m,
-                Descriptiopn = "Spar",
+                Description = "Spar",
                 TransactiopnDate = DateTime.UtcNow.Add(TimeSpan.FromDays(-1)),
                 BankTransactionID = "B01",
 
@@ -23,7 +23,7 @@ public class BankSource : ITransactionSource
                 Source = "BX",
                 CustomerID = customerID,
                 Amount = 1270.34m,
-                Descriptiopn = "FoodLovers",
+                Description = "FoodLovers",
                 TransactiopnDate = DateTime.UtcNow.Add(TimeSpan.FromDays(-120)),
                 BankTransactionID = "B03",
 
