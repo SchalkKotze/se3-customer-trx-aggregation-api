@@ -18,19 +18,19 @@ public class AzureTokenService : IAzureTokenService
     private readonly IEnvironmentService _environmentService;
     private readonly IFluentValidationService _fluentValidationService;
     private readonly IValidator<GenerateTokenDto> _generateTokenDtoValidator;
-    private readonly Stopwatch _stopwatch;
+    
 
     public AzureTokenService(ILoggingService loggingService,
                              IEnvironmentService environmentService,
                              IFluentValidationService fluentValidationService,
-                             IValidator<GenerateTokenDto> generateTokenDtoValidator,
-                             Stopwatch stopwatch)
+                             IValidator<GenerateTokenDto> generateTokenDtoValidator
+                             )
     {
         _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
         _environmentService = environmentService ?? throw new ArgumentNullException(nameof(environmentService));
         _fluentValidationService = fluentValidationService ?? throw new ArgumentNullException(nameof(fluentValidationService));
         _generateTokenDtoValidator = generateTokenDtoValidator ?? throw new ArgumentNullException(nameof(generateTokenDtoValidator));
-        _stopwatch = stopwatch ?? throw new ArgumentNullException(nameof(stopwatch));
+       
     }
 
     public async Task<ResponseModel<TokenResponse>> RequestAccessTokenAsync(GenerateTokenDto generateTokenDto, CancellationToken token)
@@ -59,9 +59,6 @@ public class AzureTokenService : IAzureTokenService
     private async Task<AuthenticationResult> AcquireClientCredentialTokenAsync(GenerateTokenDto generateTokenDto)
     {
         _loggingService.LogTrace(LoggingMessages.Executing("AzureTokenService", "AcquireClientCredentialTokenAsync"));
-            
-        _stopwatch.Reset();
-        _stopwatch.Start();
         
         var confidentialClientApplicationBuilder = ConfidentialClientApplicationBuilder
             .Create(generateTokenDto.ClientId)
@@ -74,10 +71,6 @@ public class AzureTokenService : IAzureTokenService
         var authenticationResult = await confidentialClientApplicationBuilder
             .AcquireTokenForClient(ResourceIds)
             .ExecuteAsync();
-        
-        _stopwatch.Stop();
-        
-        _loggingService.LogDebug(LoggingMessages.Stopwatch("AzureTokenService", "AcquireClientCredentialTokenAsync", _stopwatch.Elapsed));
         
         return authenticationResult;
     }

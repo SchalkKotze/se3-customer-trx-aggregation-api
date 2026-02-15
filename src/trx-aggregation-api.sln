@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "trx-aggregation-api", "trx-aggregation-api\trx-aggregation-api.csproj", "{C0403BB2-72D6-4BA9-A264-509EF92F10B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "trx-aggreagtion-api.Test", "trx-aggreagtion-api.Test\trx-aggreagtion-api.Test.csproj", "{736A74A5-57FE-40A0-A4BE-E63B9F3245AD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C0403BB2-72D6-4BA9-A264-509EF92F10B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0403BB2-72D6-4BA9-A264-509EF92F10B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0403BB2-72D6-4BA9-A264-509EF92F10B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0403BB2-72D6-4BA9-A264-509EF92F10B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{736A74A5-57FE-40A0-A4BE-E63B9F3245AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{736A74A5-57FE-40A0-A4BE-E63B9F3245AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{736A74A5-57FE-40A0-A4BE-E63B9F3245AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{736A74A5-57FE-40A0-A4BE-E63B9F3245AD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

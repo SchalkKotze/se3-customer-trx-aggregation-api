@@ -42,58 +42,67 @@ public class AggregateService : IAggregateService
     
     public async Task<ResponseModel<List<AggregatedCustomerTransactionsDto>>> AggregateClientsAsync(CustomerAggregationCommand customerAggregationCommand, CancellationToken token)
     {
-        _loggingService.LogTrace(LoggingMessages.Executing("AggregationService", "AggregateClientsAsync"));
-
-        var r = new ResponseModel<List<AggregatedCustomerTransactionsDto>>(
-            new List<AggregatedCustomerTransactionsDto>());
-        
-        r.MergeResponses(_fluentValidationService.ValidateAggregateCommand(
-            customerAggregationCommand, _aggregateDtoValidator));
-
-        if (!r.IsValid) return r;
-
-        var allCustomerAggregates = new List<AggregatedCustomerTransactionsDto>();
-       
-        foreach (var customerID in customerAggregationCommand.CustomerIds)
+        try
         {
-            var rawResults = await Task.WhenAll(
-                _transactionSources.Select(s => s.GettransactionsAsync(customerID)));
+            _loggingService.LogTrace(LoggingMessages.Executing("AggregationService", "AggregateClientsAsync"));
 
-            var allRaw = rawResults.SelectMany(x => x).ToList();
-            
-            var normalisedTransactions = allRaw
-                .Select(t => _transactionNormaliser.Normalise(t,t.Source))
-                .ToList();
-            
-            var filteredTransactions = normalisedTransactions
-                .Where(t => (!customerAggregationCommand.FromDate.HasValue ||
-                             t.TransactionDate >= customerAggregationCommand.FromDate.Value) &&
-                            (!customerAggregationCommand.ToDate.HasValue ||
-                             t.TransactionDate <= customerAggregationCommand.ToDate.Value))
-                .ToList();
+            var r = new ResponseModel<List<AggregatedCustomerTransactionsDto>>(
+                new List<AggregatedCustomerTransactionsDto>());
 
-            var categorisedTransactions = _transactionCategoriser.Categorise(filteredTransactions);
+            r.MergeResponses(_fluentValidationService.ValidateAggregateCommand(
+                customerAggregationCommand, _aggregateDtoValidator));
 
-            var aggregatedTransactions = categorisedTransactions
-                .GroupBy(a => a.Category)
-                .Select(s => new AggregatedCategoryResultsDtos
-                {
-                    Category = s.Key,
-                    Amount = s.Sum(t => t.Amount),
-                    TransactionCount = s.Count()
-                })
-                .ToList();
+            if (!r.IsValid) return r;
 
-            var aggregatedCustomer =  new AggregatedCustomerTransactionsDto
+            var allCustomerAggregates = new List<AggregatedCustomerTransactionsDto>();
+
+            foreach (var customerID in customerAggregationCommand.CustomerIds)
             {
-                CustomerID = customerID,
-                CategoryAggregates = aggregatedTransactions
-            };
+                var rawResults = await Task.WhenAll(
+                    _transactionSources.Select(s => s.GettransactionsAsync(customerID)));
 
-            allCustomerAggregates.Add(aggregatedCustomer);
+                var allRaw = rawResults.SelectMany(x => x).ToList();
+
+                var normalisedTransactions = allRaw
+                    .Select(t => _transactionNormaliser.Normalise(t, t.Source))
+                    .ToList();
+
+                var filteredTransactions = normalisedTransactions
+                    .Where(t => (!customerAggregationCommand.FromDate.HasValue ||
+                                 t.TransactionDate >= customerAggregationCommand.FromDate.Value) &&
+                                (!customerAggregationCommand.ToDate.HasValue ||
+                                 t.TransactionDate <= customerAggregationCommand.ToDate.Value))
+                    .ToList();
+
+                var categorisedTransactions = _transactionCategoriser.Categorise(filteredTransactions);
+
+                var aggregatedTransactions = categorisedTransactions
+                    .GroupBy(a => a.Category)
+                    .Select(s => new AggregatedCategoryResultsDtos
+                    {
+                        Category = s.Key,
+                        Amount = s.Sum(t => t.Amount),
+                        TransactionCount = s.Count()
+                    })
+                    .ToList();
+
+                var aggregatedCustomer = new AggregatedCustomerTransactionsDto
+                {
+                    CustomerID = customerID,
+                    CategoryAggregates = aggregatedTransactions
+                };
+
+                allCustomerAggregates.Add(aggregatedCustomer);
+            }
+
+            r.Data = allCustomerAggregates;
+            return r;
         }
-        
-        r.Data =  allCustomerAggregates;
-        return r;
+        catch (Exception ex)
+        {
+            return null;
+        }
+
+
     }
 }

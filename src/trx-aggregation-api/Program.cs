@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using aggregate_api.Application.Infrastructure.Categorisation;
 using aggregate_api.Application.Infrastructure.Normalisation;
 using aggregate_api.Application.Interfaces;
 using aggregate_api.Application.Services;
@@ -55,10 +56,12 @@ builder.Services
     .AddSingleton<ILoggingService, LoggingService>();
 
 // Register Other
-builder.Services
-    .AddTransient<Stopwatch>();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
+
+app.MapHealthChecks("/health/live");
+app.MapHealthChecks("/health/ready");
 
 var killswitch = Environment.GetEnvironmentVariable("SWAGGER_KILLSWITCH");
 

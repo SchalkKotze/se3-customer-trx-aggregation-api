@@ -4,7 +4,7 @@ using aggregate_api.Application.Domain.Constants;
 using aggregate_api.Application.Domain.Enums;
 using TransactionCategory = aggregate_api.Application.Domain.Enums.TransactionCategory;
 
-namespace aggregate_api.Application.Infrastructure.Normalisation;
+namespace aggregate_api.Application.Infrastructure.Categorisation;
 
 public class TransactionCategoriser : ITransactionCategoriser
 {
