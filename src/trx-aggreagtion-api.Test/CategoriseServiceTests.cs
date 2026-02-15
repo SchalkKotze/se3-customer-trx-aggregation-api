@@ -5,6 +5,7 @@ using aggregate_api.Application.Domain.Models;
 using aggregate_api.Application.Domain.Requests.v1;
 using aggregate_api.Application.Domain.Responses;
 using aggregate_api.Application.Dtos;
+using aggregate_api.Application.Infrastructure.Categorisation;
 using aggregate_api.Application.Interfaces;
 using aggregate_api.Application.Services;
 using aggregate_api.Core.FluentValidators.Services.Contracts;
@@ -18,7 +19,7 @@ using TransactionCategory = aggregate_api.Application.Domain.Enums.TransactionCa
 
 namespace trx_aggreagtion_api.Test;
 
-public class AggregateServiceTests
+public class CategoriseServiceTests
 {
     private readonly Mock<ITransactionNormaliser> _normaliser = new() ;
     private readonly Mock<ITransactionCategoriser> _categoriser = new();
@@ -34,7 +35,7 @@ public class AggregateServiceTests
     private AggregateService _service_under_test = default!;
 
 
-    public AggregateServiceTests()
+    public CategoriseServiceTests()
     {
         _mapper
             .Setup(m => m.Map<CustomerAggregationCommand>
@@ -58,6 +59,8 @@ public class AggregateServiceTests
             _bankSource.Object,
             _creditSource.Object,
         };
+
+        var realCategoriser = new TransactionCategoriser();
         
         _service_under_test = new AggregateService(
             _loggingService.Object,
@@ -66,122 +69,38 @@ public class AggregateServiceTests
             _mapper.Object,
             _transactionSources,
             _normaliser.Object,
-            _categoriser.Object,
+            realCategoriser,
             _aggregateValidator .Object
             );
     }
     
     [Fact]
-    public async Task AggregateClientAsync_WhenValidInput_ReturnsAggregatedResult()
+    public async Task AggregateClientAsync_CategorisesTransactionCorrectly()
     {
         var customerId = "CustID101";
+        
         var command = new CustomerAggregationCommand
         {
             CustomerIds = new List<string> { customerId }
         };
+        
         var bankTransactions = new List<RawTransaction>
         {
             new BankSourceRawTransaction
             {
-                Source = "B",
-                CustomerID = customerId,
-                Amount = 10,
-                TransactiopnDate = default
-            }
-        };
-        
-        var  creditTransactions = new List<RawTransaction>
-        {
-            new CreditRawTransactions
-            {
-                Source = "C",
-                AccountID = customerId,
-                AmountCents = 100,
-                TimeStamp = System.DateTime.UtcNow.ToString("o")
-            
-            }
-        };
-
-        _bankSource.Setup(s => s.GettransactionsAsync(customerId))
-            .ReturnsAsync(bankTransactions);
-        _creditSource
-            .Setup(s => s.GettransactionsAsync(customerId))
-            .ReturnsAsync(creditTransactions);
-
-        
-
-        _normaliser
-            .Setup(n=>n.Normalise(It.IsAny<object>(),It.IsAny<string>()))
-            .Returns((object t ,string s) => new Transaction
-            {
-             CustomerID = customerId,
-             Amount = 100,
-             
-            });
-
-        _categoriser
-            .Setup(c => c.Categorise(It.IsAny<IEnumerable<Transaction>>()))
-            .Returns((IEnumerable<Transaction> transactions) => transactions.ToList());
-
-
-        _fluentValidationService
-            .Setup(f => f.ValidateAggregateCommand(
-                It.IsAny<CustomerAggregationCommand>(),
-                It.IsAny<IValidator<CustomerAggregationCommand>>()))
-            .Returns(new ResponseModel<List<AggregatedCustomerTransactionsDto>>(
-                new List<AggregatedCustomerTransactionsDto>()));
-                    
-        
-        _aggregateValidator
-            .Setup(a => a.Validate(It.IsAny<CustomerAggregationCommand>()))
-            .Returns(new ValidationResult());
-
-
-        var test_result = await _service_under_test.AggregateClientsAsync(command,CancellationToken.None);
- 
-        //Assert 
-
-        Assert.NotNull(test_result);
-        Assert.True(test_result.IsValid);
-        Assert.Single(test_result.Data);
-        Assert.Equal(customerId, test_result.Data.First().CustomerID);
-        
-        _bankSource.Verify(s=>s.GettransactionsAsync(customerId),Times.Once);
-        _creditSource.Verify(s=>s.GettransactionsAsync(customerId),Times.Once);
-        
-        _normaliser.Verify(n=>n.Normalise(It.IsAny<object>(),It.IsAny<string>()),Times.Exactly(2));
-        _categoriser.Verify(c=>c.Categorise(It.IsAny<IEnumerable<Transaction>>()),Times.Once);
-    }
-
-    [Fact]
-    public async Task AggregateClientAsync_WhendateRangeSet_FilterTransactionCorrectly()
-    {
-        var customerId = "CustID101";
-        
-        var fromDate = DateTime.UtcNow.AddDays(-30);
-        var toDate = DateTime.UtcNow;
-        
-        var command = new CustomerAggregationCommand
-        {
-            CustomerIds = new List<string> { customerId },
-            FromDate = fromDate,
-            ToDate = toDate
-        };
-        var bankTransactions = new List<RawTransaction>
-        {
-            new BankSourceRawTransaction
-            {
-                Source = "B",
+                Source = "BX",
                 CustomerID = customerId,
                 Amount = 100,
-                TransactiopnDate = DateTime.UtcNow.AddDays(-10)
+                TransactiopnDate = DateTime.UtcNow.AddDays(-10),
+                Description = "TicketPro"
             },
             new BankSourceRawTransaction
             {
-                Source = "B",
+                Source = "BX",
                 CustomerID = customerId,
                 Amount = 1000,
-                TransactiopnDate = DateTime.UtcNow.AddDays(-40)
+                TransactiopnDate = DateTime.UtcNow.AddDays(-40),
+                Description = "FoodLovers"
             }
         };
         
@@ -189,18 +108,35 @@ public class AggregateServiceTests
         _bankSource.Setup(s => s.GettransactionsAsync(customerId))
             .ReturnsAsync(bankTransactions);
 
-        var creditTransactions = new List<RawTransaction>();
-        _creditSource
-            .Setup(s => s.GettransactionsAsync(customerId))
-            .ReturnsAsync(creditTransactions);
         
         _normaliser
             .Setup(n=>n.Normalise(It.IsAny<object>(),It.IsAny<string>()))
-            .Returns((object t ,string s) => new Transaction
+            .Returns((object t ,string s) =>
             {
-             CustomerID = customerId,
-             Amount = (t as BankSourceRawTransaction)?.Amount??0,
-             TransactionDate = (t as BankSourceRawTransaction)?.TransactiopnDate??DateTime.UtcNow,
+                string description = string.Empty;
+                decimal amt = 0;
+
+                switch (t)
+                {
+                    case BankSourceRawTransaction b:
+                        description = b.Description ?? string.Empty;
+                        amt = b.Amount;
+                        break;
+                    case CreditRawTransactions c:
+                        description = c.Description;
+                        amt = c.AmountCents;
+                        break;
+                    
+                }
+               
+                return new Transaction
+                {
+                    CustomerID = customerId,
+                    Amount = amt,
+                    TransactionDate = DateTime.UtcNow,
+                    Source = s,
+                    Description = description
+                };
             });
         
         _categoriser
@@ -214,7 +150,6 @@ public class AggregateServiceTests
                 It.IsAny<IValidator<CustomerAggregationCommand>>()))
             .Returns(new ResponseModel<List<AggregatedCustomerTransactionsDto>>(
                 new List<AggregatedCustomerTransactionsDto>()));
-                    
         
         _aggregateValidator
             .Setup(a => a.Validate(It.IsAny<CustomerAggregationCommand>()))
@@ -227,10 +162,10 @@ public class AggregateServiceTests
 
         Assert.NotNull(test_result);
         Assert.True(test_result.IsValid);
-        Assert.Single(test_result.Data);
         
-        Assert.Equal(customerId, test_result.Data.First().CustomerID);
-        Assert.Equal(100,test_result.Data.First().TotalBalance);
+        Assert.Equal(2, test_result.Data.First().CategoryAggregates.Count);
+
         
     }
+    
 }

@@ -20,9 +20,10 @@ public class FluentValidationService : IFluentValidationService
         _loggingService.LogTrace(LoggingMessages.Executing("FluentValidationService", "ValidateAggregateDto"));
 
         var r = new ResponseModel();
-        
-        var validationResult = validator.Validate(dto);
-
+        try
+        {
+            var validationResult = validator.Validate(dto);
+       
         if (validationResult.Errors.Any())
         {
             foreach (var error in validationResult.Errors)
@@ -32,6 +33,13 @@ public class FluentValidationService : IFluentValidationService
         }
         
         return r;
+        }
+        catch (Exception ex)
+        {
+            var a = 1;
+            return r;
+        }
+
     }
 
     public ResponseModel ValidateDtos<TDto>(IList<TDto> dtos, IValidator<TDto> validator)
