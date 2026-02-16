@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using aggregate_api.Application.Domain.Models;
 using aggregate_api.Application.Infrastructure.Categorisation;
 using aggregate_api.Application.Infrastructure.Normalisation;
 using aggregate_api.Application.Interfaces;
@@ -27,6 +28,64 @@ builder.InjectSerilog();
 // Register Controllers
 builder.Services.AddControllers();
 
+// Allign Request Errors to ResponseModel to ensure all responses are uniform
+
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var response = new ResponseModel();
+            foreach (var entry in context.ModelState)
+            {
+                foreach (var errors in entry.Value.Errors)
+                {
+                    response.Errors.Add(
+                        string.IsNullOrWhiteSpace(entry.Key)
+                            ? errors.ErrorMessage
+                            : $"{entry.Key}: {errors.ErrorMessage}"
+                    );
+                }
+            }
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(response);
+        };
+    }
+);
+
+/*builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Customer Aggreation API",
+        Version = "v1"
+
+    });
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter 'Bearer Token{Your Token}'"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    }
+);
+    */
+    
 // Register Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.InjectSwaggerFilters();
@@ -82,3 +141,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+
