@@ -32,7 +32,7 @@ public class AggregationController : ControllerBase
         _aggregateService = aggregateService ?? throw new ArgumentNullException(nameof(aggregateService));
     }
     
-    [HttpPost("unauth-customers")]
+   /* [HttpPost("unauth-customers")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> UnauthAggregateListAsync(SendAggregateRequest request, CancellationToken token)
@@ -58,8 +58,9 @@ public class AggregationController : ControllerBase
             return StatusCode(500);
         }
     }
-    
-    [HttpGet("unauth-customer")]
+    */
+    [Authorize]
+    [HttpGet("customer")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> UnauthAggregateSingleAsync(string request, CancellationToken token)
@@ -89,8 +90,8 @@ public class AggregationController : ControllerBase
             return StatusCode(500);
         }
     }
-    
-    [HttpGet("unauth-customer-30day")]
+    [Authorize]
+    [HttpGet("customer-history")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> UnauthAggregateSingle30Async(string request,
@@ -159,6 +160,40 @@ public class AggregationController : ControllerBase
         }
     }
    
+ /*
+    [Authorize]
+    [HttpPost("customers-history")]
+    [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
+    [ApiExplorerSettings(GroupName = "v1")]
+    public async Task<IActionResult> UnauthAggregateMultipleDaysAsync(SendAggregateRequest request,   int days = 30, CancellationToken token)
+    {
+        try
+        {
+            if (days <= 0) return BadRequest("Days must be greater than 0");
+            
+            var aggregationCommand = _mapper.Map<CustomerAggregationCommand>(request)
+                .WithAppId(GetClaimValue("appid"))
+                .WithAppDisplayName(GetClaimValue("app_displayname"))
+                .WithUserRoles(GetRoleValues())
+                .WithCorrelationId(string.Empty);
+
+            var responseModel = await _aggregateService.AggregateClientsAsync(aggregationCommand, token);
+            
+            if (responseModel.IsValid)
+            {
+                return Ok(responseModel.Data);
+            }
+
+            return BadRequest(responseModel);
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError(LoggingMessages.Exception("AggregateController", "SendAsync"), ex);
+            
+            return StatusCode(500);
+        }
+    }
+*/
 
     #region Private Functions
     
