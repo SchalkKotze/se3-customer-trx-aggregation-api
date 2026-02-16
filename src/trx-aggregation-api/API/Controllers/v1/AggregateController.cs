@@ -49,7 +49,7 @@ public class AggregationController : ControllerBase
                 return Ok(responseModel.Data);
             }
 
-            return BadRequest(responseModel.Errors);
+            return BadRequest(responseModel);
         }
         catch (Exception ex)
         {
@@ -80,7 +80,7 @@ public class AggregationController : ControllerBase
                 return Ok(responseModel.Data.Single());
             }
 
-            return BadRequest(responseModel.Errors);
+            return BadRequest(responseModel);
         }
         catch (Exception ex)
         {
@@ -118,7 +118,7 @@ public class AggregationController : ControllerBase
                 return Ok(responseModel.Data.Single());
             }
 
-            return BadRequest(responseModel.Errors);
+            return BadRequest(responseModel);
         }
         catch (Exception ex)
         {
@@ -149,7 +149,7 @@ public class AggregationController : ControllerBase
                 return Ok(responseModel.Data);
             }
 
-            return BadRequest(responseModel.Errors);
+            return BadRequest(responseModel);
         }
         catch (Exception ex)
         {
