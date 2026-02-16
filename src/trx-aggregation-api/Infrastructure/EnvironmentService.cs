@@ -19,6 +19,7 @@ public class EnvironmentService : IEnvironmentService
     public string SourceBankConnection => GetEnvironmentVariable("SOURCE_BANK");
     public string SourceCreditConnection => GetEnvironmentVariable("SOURCE_CREDIT");
     public string SourceInvestmentConnection => GetEnvironmentVariable("SOURCE_INVESTMENT");
+    public string UseLocalFakeJwt => GetEnvironmentVariable("USE_LOCAL_FAKE_JWT");
     
     private string GetEnvironmentVariable(string environmentVariableName)
     {

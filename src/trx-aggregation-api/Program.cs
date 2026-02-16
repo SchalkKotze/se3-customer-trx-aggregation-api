@@ -14,76 +14,98 @@ using aggregate_api.Core.Swagger;
 using aggregate_api.Infrastructure;
 using aggregate_api.Infrastructure.Contracts;
 using aggregate_api.Infrastructure.ExternalData;
-
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register Authentication
-builder.Services.UseCustomJwtBearer();
-builder.Services.AddScoped<CorrelationIdFilter>();
+// ----------------------------------------
+// 1️⃣ Authentication
+// ----------------------------------------
+var useLocalFakeJwt = Environment.GetEnvironmentVariable("USE_LOCAL_FAKE_JWT") == "true";
 
-// Register Serilog
+if (useLocalFakeJwt)
+{
+    // Fake JWT handler for evaluators
+    builder.Services.AddAuthentication("FakeJwt")
+        .AddScheme<AuthenticationSchemeOptions, FakeJwtHandler>("FakeJwt", _ => { });
+}
+else
+{
+    // Real Azure JWT
+    builder.Services.UseCustomJwtBearer();
+}
+
+builder.Services.AddAuthorization(); // Required for [Authorize]
+
+// ----------------------------------------
+// 2️⃣ Filters & Serilog
+// ----------------------------------------
+builder.Services.AddScoped<CorrelationIdFilter>();
 builder.InjectSerilog();
 
-// Register Controllers
+// ----------------------------------------
+// 3️⃣ Controllers
+// ----------------------------------------
 builder.Services.AddControllers();
 
-// Allign Request Errors to ResponseModel to ensure all responses are uniform
-
+// Uniform model validation responses
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
     {
-        options.InvalidModelStateResponseFactory = context =>
+        var response = new ResponseModel();
+        foreach (var entry in context.ModelState)
         {
-            var response = new ResponseModel();
-            foreach (var entry in context.ModelState)
+            foreach (var errors in entry.Value.Errors)
             {
-                foreach (var errors in entry.Value.Errors)
-                {
-                    response.Errors.Add(
-                        string.IsNullOrWhiteSpace(entry.Key)
-                            ? errors.ErrorMessage
-                            : $"{entry.Key}: {errors.ErrorMessage}"
-                    );
-                }
+                response.Errors.Add(
+                    string.IsNullOrWhiteSpace(entry.Key)
+                        ? errors.ErrorMessage
+                        : $"{entry.Key}: {errors.ErrorMessage}"
+                );
             }
-            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(response);
-        };
-    }
-);
+        }
+        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(response);
+    };
+});
 
-// Register Swagger
+// ----------------------------------------
+// 4️⃣ Swagger
+// ----------------------------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.InjectSwaggerFilters();
 
-// Register AutoMapper Profiles
+// ----------------------------------------
+// 5️⃣ AutoMapper & Fluent Validators
+// ----------------------------------------
 builder.Services.InjectAutoMapperProfiles();
-
-// Register Fluent Validators
 builder.Services.InjectFluentValidators();
 
-// Register your Sources
+// ----------------------------------------
+// 6️⃣ Transaction Sources & Services
+// ----------------------------------------
 builder.Services.AddScoped<ITransactionSource, BankSource>();
 builder.Services.AddScoped<ITransactionSource, CreditSource>();
-//builder.Services.AddScoped<ITransactionSource, InvestmentSource>();
-
 builder.Services.AddScoped<ITransactionNormaliser, TransactionNormaliser>();
 builder.Services.AddScoped<ITransactionCategoriser, TransactionCategoriser>();
 
-// Register Services
 builder.Services
     .AddTransient<IAzureTokenService, AzureTokenService>()
     .AddTransient<IAggregateService, AggregateService>();
 
-// Register Infrastructure Services
 builder.Services
     .AddSingleton<IEnvironmentService, EnvironmentService>()
     .AddSingleton<ILoggingService, LoggingService>();
 
-// Register Other
+// Health checks
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+// ----------------------------------------
+// 7️⃣ Middleware
+// ----------------------------------------
 app.MapHealthChecks("/health/live");
 app.MapHealthChecks("/health/ready");
 
@@ -105,4 +127,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();
+

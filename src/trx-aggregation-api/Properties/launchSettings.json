@@ -23,7 +23,8 @@
         "AGGREGATE_API_AAD_INSTANCE": "https://login.microsoftonline.com/",
         "AGGREGATE_API_AAD_TENANT_ID": "3c557229-bde5-49c0-bd43-0b49dbd41f1d",
         "AGGREGATE_API_HTML_ROLES": "FSC_ROLE",
-        "AGGREGATE_API_TEMPLATE_ROLES": "CRM_ROLE"
+        "AGGREGATE_API_TEMPLATE_ROLES": "CRM_ROLE",
+        "USE_LOCAL_FAKE_JWT": "true"
       }
     },
     "https": {
@@ -40,7 +41,8 @@
         "AGGREGATE_API_AAD_INSTANCE": "https://login.microsoftonline.com/",
         "AGGREGATE_API_AAD_TENANT_ID": "3c557229-bde5-49c0-bd43-0b49dbd41f1d",
         "AGGREGATE_API_HTML_ROLES": "FSC_ROLE",
-        "AGGREGATE_API_TEMPLATE_ROLES": "CRM_ROLE"
+        "AGGREGATE_API_TEMPLATE_ROLES": "CRM_ROLE",
+        "USE_LOCAL_FAKE_JWT": "true"
       }
     },
     "IIS Express": {
@@ -48,7 +50,8 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "USE_LOCAL_FAKE_JWT": "true"
       }
     }
   }
