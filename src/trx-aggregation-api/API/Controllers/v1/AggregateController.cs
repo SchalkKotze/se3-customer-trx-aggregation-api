@@ -128,7 +128,7 @@ public class AggregationController : ControllerBase
         }
     }
     
-    [Authorize(Policy = "HtmlPolicy")]
+    [Authorize]
     [HttpPost("customers")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]

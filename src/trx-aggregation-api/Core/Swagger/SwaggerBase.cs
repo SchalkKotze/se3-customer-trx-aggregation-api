@@ -47,12 +47,13 @@ public static class SwaggerBase
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 In = ParameterLocation.Header,
-                Description = "Please enter a valid token",
+                Description = "",
                 Name = "Authorization",
                 Type = SecuritySchemeType.Http,
                 BearerFormat = "JWT",
                 Scheme = "Bearer"
             });
+            
             c.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
                 {
@@ -71,4 +72,5 @@ public static class SwaggerBase
         
         return services;
     }
+    
 }
