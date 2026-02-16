@@ -1,26 +1,39 @@
-# Use the official .NET SDK for build
+# -----------------------------
+# Stage 1: Build
+# -----------------------------
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+# Set working directory inside container
 WORKDIR /app
 
-# Copy csproj and restore dependencies
-COPY *.csproj ./
-RUN dotnet restore
+# Copy the API csproj first to leverage caching
+COPY trx-aggregation-api/*.csproj ./trx-aggregation-api/
 
-# Copy everything else and build
-COPY . ./
-RUN dotnet publish -c Release -o /out
+# Restore dependencies for the API project
+RUN dotnet restore trx-aggregation-api/trx-aggregation-api.csproj
 
-# Use runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+# Copy all API source files
+COPY trx-aggregation-api/ ./trx-aggregation-api/
+
+# (Optional) If you want to include tests later, copy test project here:
+# COPY trx-aggreagtion-api.Test/*.csproj ./trx-aggreagtion-api.Test/
+# COPY trx-aggreagtion-api.Test/ ./trx-aggreagtion-api.Test/
+
+# Build and publish the API project (Release)
+RUN dotnet publish trx-aggregation-api/trx-aggregation-api.csproj -c Release -o /app/publish
+
+# -----------------------------
+# Stage 2: Runtime
+# -----------------------------
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+
 WORKDIR /app
-COPY --from=build /out ./
 
-# Expose HTTP port
-EXPOSE 80
+# Copy the published output from build stage
+COPY --from=build /app/publish .
 
-# Use environment variables
-ENV DOTNET_RUNNING_IN_CONTAINER=true
-ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+# Expose port (adjust if your API uses a different port)
+EXPOSE 5000
 
 # Entry point
-ENTRYPOINT ["dotnet", "aggregate_api.dll"]
+ENTRYPOINT ["dotnet", "trx-aggregation-api.dll"]
