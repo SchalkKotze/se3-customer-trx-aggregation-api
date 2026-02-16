@@ -29,15 +29,15 @@ public static class AuthenticationBase
             .AddJwtBearer(opt =>
             {
                 opt.Audience = aadResourceId;
-                opt.Authority = $"{aadInstance}{aadTenantId}";
+                opt.Authority = $"{aadInstance}{aadTenantId}/v2.0";
 
                 opt.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidIssuers = new []
                     {
                         $"https://sts.windows.net/{aadTenantId}/",
-                        $"https://sts.windows.net/{aadTenantId}/"
-                    }.ToList(),
+                        $"http://sts.windows.net/{aadTenantId}/"
+                    },
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateLifetime = true,
