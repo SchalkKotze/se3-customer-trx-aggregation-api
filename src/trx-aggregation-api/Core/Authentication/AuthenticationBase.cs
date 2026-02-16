@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 namespace aggregate_api.Core.Authentication;
 
@@ -22,34 +23,36 @@ public static class AuthenticationBase
             throw new ArgumentException("Role environment variable is missing or invalid");
         }
 
-        services
-            .AddAuthorization(options =>
-            {
-                options.AddPolicy("HtmlPolicy", policy =>
-                {
-                    if (!string.IsNullOrEmpty(htmlRoles))
-                    {
-                        var roles = htmlRoles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                        policy.RequireRole(roles);
-                    }
-                });
-                
-                options.AddPolicy("TemplatedPolicy", policy =>
-                {
-                    if (!string.IsNullOrEmpty(templateRoles))
-                    {
-                        var roles = templateRoles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                        policy.RequireRole(roles);
-                    }
-                });
-            });
-        
+       
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(opt =>
             {
                 opt.Audience = aadResourceId;
                 opt.Authority = $"{aadInstance}{aadTenantId}";
+
+                opt.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidIssuers = new []
+                    {
+                        $"https://sts.windows.net/{aadTenantId}/",
+                        $"https://sts.windows.net/{aadTenantId}/"
+                    }.ToList(),
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true
+                };
+                opt.Events = new JwtBearerEvents
+                {
+                    OnAuthenticationFailed = ctx =>
+                    {
+                        var logger = ctx.HttpContext.RequestServices
+                            .GetRequiredService<Microsoft.Extensions.Logging.ILogger<object>>();
+                        logger.LogError(ctx.Exception, "JWT Auth Failed");
+                        return Task.CompletedTask;
+                    }
+                };
             });
         
         return services;
