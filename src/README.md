@@ -22,7 +22,7 @@ dotnet test
 3 Positive Tests
 1 Negative Test
 
-## JWT
+## Autherization JWT is implelemted
 All endpoints are [Authorize]
 
 I have by means of an Environment Var in the .env supplied a toggle [USE_LOCAL_FAKE_JWT] that will
@@ -32,18 +32,23 @@ I have by means of an Environment Var in the .env supplied a toggle [USE_LOCAL_F
             CLientID : a0dccd5c-8550-4fc3-a326-1336641f3ca0
             Secret : Will be supplied if required.
 
-## Swagger Implemented
+## Swagger is Implemented
     I have by means of an Environment Var in the .env supplied a toggle [SWAGGER_KILLSWITCH] 
     TRUE : Will not expose Swagger
     FALSE: Expose Swagger
 
-## Automapper Implemented
-    To Map Requests to Commands
-## fluentValidator Implemented
-    To do validation of commands
-## Logger 
+## Automapper is Implemented
+    To Map Requests to DTOs
 
-## Health Checks Implemented
+## FluentValidator is Implemented
+    To do validation of commands
+
+## Serilog is Implemented 
+    SeriLog implemented as logging provider that replaces the default ILogger 
+    Obviously cannot reach the AWS Cloudwatch (Env Var was created to AWS Loggroup)
+    So will try to log to aws-logger-errors.txt
+
+## Health Checks are Implemented
     /health/live
     /health/ready
 
