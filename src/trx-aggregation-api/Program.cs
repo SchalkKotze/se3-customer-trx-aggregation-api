@@ -7,7 +7,6 @@ using aggregate_api.Application.Services;
 using aggregate_api.Application.Services.Contracts;
 using aggregate_api.Core.Authentication;
 using aggregate_api.Core.AutoMapper;
-using aggregate_api.Core.Filters;
 using aggregate_api.Core.FluentValidators;
 using aggregate_api.Core.Serilog;
 using aggregate_api.Core.Swagger;
@@ -20,9 +19,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 var builder = WebApplication.CreateBuilder(args);
 
 // ----------------------------------------
-// 1️⃣ Authentication
+//  Authentication
 // ----------------------------------------
-var useLocalFakeJwt = Environment.GetEnvironmentVariable("USE_LOCAL_FAKE_JWT") == "true";
+var useLocalFakeJwt = Environment.GetEnvironmentVariable(
+    "USE_LOCAL_FAKE_JWT") == "true";
 
 if (useLocalFakeJwt)
 {
@@ -39,13 +39,12 @@ else
 builder.Services.AddAuthorization(); // Required for [Authorize]
 
 // ----------------------------------------
-// 2️⃣ Filters & Serilog
+//  Serilog
 // ----------------------------------------
-builder.Services.AddScoped<CorrelationIdFilter>();
 builder.InjectSerilog();
 
 // ----------------------------------------
-// 3️⃣ Controllers
+//  Controllers
 // ----------------------------------------
 builder.Services.AddControllers();
 
@@ -71,19 +70,19 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options 
 });
 
 // ----------------------------------------
-// 4️⃣ Swagger
+//  Swagger
 // ----------------------------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.InjectSwaggerFilters();
 
 // ----------------------------------------
-// 5️⃣ AutoMapper & Fluent Validators
+//  AutoMapper & Fluent Validators
 // ----------------------------------------
 builder.Services.InjectAutoMapperProfiles();
 builder.Services.InjectFluentValidators();
 
 // ----------------------------------------
-// 6️⃣ Transaction Sources & Services
+//  Transaction Sources & Services
 // ----------------------------------------
 builder.Services.AddScoped<ITransactionSource, BankSource>();
 builder.Services.AddScoped<ITransactionSource, CreditSource>();
@@ -104,7 +103,7 @@ builder.Services.AddHealthChecks();
 var app = builder.Build();
 
 // ----------------------------------------
-// 7️⃣ Middleware
+//  Middleware
 // ----------------------------------------
 app.MapHealthChecks("/health/live");
 app.MapHealthChecks("/health/ready");
