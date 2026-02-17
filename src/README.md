@@ -52,4 +52,124 @@ I have by means of an Environment Var in the .env supplied a toggle [USE_LOCAL_F
     /health/live
     /health/ready
 
+## Solution Structure
+.
+├── README.md\
+├── project.structure.txt\
+├── trx-aggregation-api\
+│   ├── API\
+│   │   ├── Controllers\
+│   │   │   └── v1\
+│   │   │       ├── AggregateController.cs\
+│   │   │       └── TokensController.cs\
+│   │   └── DTOs\
+│   │       ├── Requests\
+│   │       │   └── v1\
+│   │       │       ├── AggregateRequest.cs\
+│   │       │       └── GenerateTokenRequest.cs\
+│   │       └── Responses\
+│   │           └── v1\
+│   │               ├── AggregateResponse.cs\
+│   │               └── TokenResponse.cs\
+│   ├── Application\
+│   │   ├── Commands\
+│   │   │   └── CustomerAggregationCommand.cs\
+│   │   ├── Domain\
+│   │   │   ├── Constants\
+│   │   │   │   ├── CategoryLookups.cs\
+│   │   │   │   ├── ContentTypeLookups.cs\
+│   │   │   │   ├── ErrorMessages.cs\
+│   │   │   │   ├── LoggingMessages.cs\
+│   │   │   │   └── ValidationMessages.cs\
+│   │   │   ├── Enums\
+│   │   │   │   ├── ClientTypeEnum.cs\
+│   │   │   │   ├── LogLevelEnum.cs\
+│   │   │   │   └── TransactionCategory.cs\
+│   │   │   └── Models\
+│   │   │       ├── ResponseModel.cs\
+│   │   │       ├── Transaction.cs\
+│   │   │       └── TransactionCategory.cs\
+│   │   ├── Dtos\
+│   │   │   ├── AggregatedCategoryResultsDtos.cs\
+│   │   │   ├── AggregatedCustomerTransactionsDto.cs\
+│   │   │   └── GenerateTokenDto.cs\
+│   │   ├── Interfaces\
+│   │   │   ├── IAggregateService.cs\
+│   │   │   ├── IAzureTokenService.cs\
+│   │   │   ├── ITransactionCategoriser.cs\
+│   │   │   └── ITransactionNormaliser.cs\
+│   │   └── Services\
+│   │       ├── AggregateService.cs\
+│   │       └── AzureTokenService.cs\
+│   ├── Core\
+│   │   ├── Authentication\
+│   │   │   ├── AuthenticationBase.cs\
+│   │   │   └── FakeJWTHandler.cs\
+│   │   ├── AutoMapper\
+│   │   │   ├── AutoMapperBase.cs\
+│   │   │   ├── Extentions\
+│   │   │   │   └── MessageDtoExtention.cs\
+│   │   │   └── Profiles\
+│   │   │       ├── AggregateProfileV1.cs\
+│   │   │       └── TokenProfile.cs\
+│   │   ├── FluentValidators\
+│   │   │   ├── AggregateValidators\
+│   │   │   │   └── AggregateCommandValidator.cs\
+│   │   │   ├── FluentValidatorBase.cs\
+│   │   │   ├── Services\
+│   │   │   │   ├── Contracts\
+│   │   │   │   │   └── IFluentValidationService.cs\
+│   │   │   │   └── FluentValidationService.cs\
+│   │   │   └── TokenValidators\
+│   │   │       └── GenerateTokenValidator.cs\
+│   │   ├── Serilog\
+│   │   │   └── SerilogBase.cs\
+│   │   └── Swagger\
+│   │       ├── Filters\
+│   │       │   └── SwaggerResponseFilter.cs\
+│   │       ├── Groups\
+│   │       │   ├── AggregationResponseGroup.cs\
+│   │       │   └── TokenResponseGroup.cs\
+│   │       ├── Helpers\
+│   │       │   └── OpenApiHelper.cs\
+│   │       └── SwaggerBase.cs\
+│   ├── Infrastructure\
+│   │   ├── Categorisation\
+│   │   │   └── TransactionCategoriser.cs\
+│   │   ├── Contracts\
+│   │   │   ├── IEnvironmentService.cs\
+│   │   │   └── ILoggingService.cs\
+│   │   ├── EnvironmentService.cs\
+│   │   ├── ExternalData\
+│   │   │   ├── Fakes\
+│   │   │   │   ├── BankSource.cs\
+│   │   │   │   ├── CreditSource.cs\
+│   │   │   │   └── InvestmentSource.cs\
+│   │   │   ├── ITransactionSource.cs\
+│   │   │   └── Production\
+│   │   │       ├── BankSourceDatabase.cs\
+│   │   │       ├── CreditSourceApi.cs\
+│   │   │       └── InvestmentSourceKafka.cs\
+│   │   ├── LoggingService.cs\
+│   │   ├── Normailsation\
+│   │   │   └── TransactionNormaliser.cs\
+│   │   └── RawTransactions\
+│   │       ├── BankSourceRawTransaction.cs\
+│   │       ├── CreditRawTransactions.cs\
+│   │       ├── InvestmentRawTransactions.cs\
+│   │       └── RawTransaction.cs\
+│   ├── Program.cs\
+│   ├── Properties\
+│   │   └── launchSettings.json\
+│   ├── appsettings.json\
+│   ├── aws-logger-errors.txt\
+│   └── trx-aggregation-api.csproj\
+├── trx-aggregation-api.Test\
+│   ├── AggregateServiceTests.cs\
+│   ├── CategoriseServiceTests.cs\
+│   ├── NegativeServiceTests.cs\
+│   └── trx-aggregation-api.Test.csproj\
+├── trx-aggregation-api.sln\
+
+
 
