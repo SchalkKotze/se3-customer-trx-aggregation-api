@@ -52,8 +52,8 @@ I have by means of an Environment Var in the .env supplied a toggle [USE_LOCAL_F
     /health/live
     /health/ready
 
-## Solution Structure
-.
+## Solution Structure Tree
+.\
 ├── README.md\
 ├── project.structure.txt\
 ├── trx-aggregation-api\
@@ -170,6 +170,7 @@ I have by means of an Environment Var in the .env supplied a toggle [USE_LOCAL_F
 │   ├── NegativeServiceTests.cs\
 │   └── trx-aggregation-api.Test.csproj\
 ├── trx-aggregation-api.sln\
+
 
 
 
