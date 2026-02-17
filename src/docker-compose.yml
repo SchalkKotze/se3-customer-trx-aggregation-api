@@ -1,9 +1,0 @@
-version: '3.9'
-
-services:
-  aggregation-api:
-    build: .
-    ports:
-      - "5000:80"
-    env_file:
-      - .env
