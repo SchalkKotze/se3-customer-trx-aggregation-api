@@ -62,7 +62,7 @@ public class AggregateService : IAggregateService
                 {
                     token.ThrowIfCancellationRequested();
                     
-                    List<RawTransaction> allRaw = null;
+                    List<RawTransaction> allRaw = new List<RawTransaction>();
 
                     foreach (var source in _transactionSources)
                     {
