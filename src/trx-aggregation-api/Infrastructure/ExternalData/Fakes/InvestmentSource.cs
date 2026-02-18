@@ -4,8 +4,10 @@ namespace aggregate_api.Infrastructure.ExternalData;
 
 public class InvestmentSource  : ITransactionSource
 {
-    public Task<IEnumerable<RawTransaction>> GettransactionsAsync(string customerID)
+    public Task<IEnumerable<RawTransaction>> GettransactionsAsync(string customerID,CancellationToken token)
     {
+        // Fake an API Source
+        
         throw new NotImplementedException();
     }
 }

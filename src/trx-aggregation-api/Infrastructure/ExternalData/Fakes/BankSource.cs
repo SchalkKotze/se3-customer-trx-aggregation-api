@@ -4,8 +4,13 @@ namespace aggregate_api.Infrastructure.ExternalData;
 
 public class BankSource : ITransactionSource
 {
-    public async Task<IEnumerable<RawTransaction>> GettransactionsAsync(string customerID)
+    public async Task<IEnumerable<RawTransaction>> GettransactionsAsync(string customerID,CancellationToken token)
     {
+        
+        //Faking Bank transaction from A Database Source
+        
+        token.ThrowIfCancellationRequested();
+        
         return new List<RawTransaction>
         {
             new BankSourceRawTransaction

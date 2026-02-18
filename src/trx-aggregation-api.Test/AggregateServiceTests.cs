@@ -102,10 +102,10 @@ public class AggregateServiceTests
             }
         };
 
-        _bankSource.Setup(s => s.GettransactionsAsync(customerId))
+        _bankSource.Setup(s =>  s.GettransactionsAsync(customerId,It.IsAny<CancellationToken>()))
             .ReturnsAsync(bankTransactions);
         _creditSource
-            .Setup(s => s.GettransactionsAsync(customerId))
+            .Setup(s =>  s.GettransactionsAsync(customerId,It.IsAny<CancellationToken>()))
             .ReturnsAsync(creditTransactions);
 
         
@@ -146,8 +146,8 @@ public class AggregateServiceTests
         Assert.Single(test_result.Data);
         Assert.Equal(customerId, test_result.Data.First().CustomerID);
         
-        _bankSource.Verify(s=>s.GettransactionsAsync(customerId),Times.Once);
-        _creditSource.Verify(s=>s.GettransactionsAsync(customerId),Times.Once);
+        _bankSource.Verify(s=> s.GettransactionsAsync(customerId,It.IsAny<CancellationToken>()),Times.Once);
+        _creditSource.Verify(s=> s.GettransactionsAsync(customerId,It.IsAny<CancellationToken>()),Times.Once);
         
         _normaliser.Verify(n=>n.Normalise(It.IsAny<object>(),It.IsAny<string>()),Times.Exactly(2));
         _categoriser.Verify(c=>c.Categorise(It.IsAny<IEnumerable<Transaction>>()),Times.Once);
@@ -186,12 +186,12 @@ public class AggregateServiceTests
         };
         
         
-        _bankSource.Setup(s => s.GettransactionsAsync(customerId))
+        _bankSource.Setup(s =>  s.GettransactionsAsync(customerId,It.IsAny<CancellationToken>()))
             .ReturnsAsync(bankTransactions);
 
         var creditTransactions = new List<RawTransaction>();
         _creditSource
-            .Setup(s => s.GettransactionsAsync(customerId))
+            .Setup(s =>  s.GettransactionsAsync(customerId,It.IsAny<CancellationToken>()))
             .ReturnsAsync(creditTransactions);
         
         _normaliser

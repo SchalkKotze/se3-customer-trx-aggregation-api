@@ -105,7 +105,8 @@ public class CategoriseServiceTests
         };
         
         
-        _bankSource.Setup(s => s.GettransactionsAsync(customerId))
+        _bankSource.Setup(s => 
+                s.GettransactionsAsync(customerId,It.IsAny<CancellationToken>()))
             .ReturnsAsync(bankTransactions);
 
         
