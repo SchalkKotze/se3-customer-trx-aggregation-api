@@ -11,7 +11,7 @@ public class BankSource : ITransactionSource
             new BankSourceRawTransaction
             {
                 Source = "BX",
-                CustomerID = customerID,
+                CustomerID = "1",
                 Amount = 130.99m,
                 Description = "Spar",
                 TransactiopnDate = DateTime.UtcNow.Add(TimeSpan.FromDays(-1)),
@@ -21,7 +21,7 @@ public class BankSource : ITransactionSource
             new BankSourceRawTransaction
             {
                 Source = "BX",
-                CustomerID = customerID,
+                CustomerID = "2",
                 Amount = 1270.34m,
                 Description = "FoodLovers",
                 TransactiopnDate = DateTime.UtcNow.Add(TimeSpan.FromDays(-120)),

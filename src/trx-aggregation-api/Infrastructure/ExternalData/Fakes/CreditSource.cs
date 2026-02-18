@@ -14,10 +14,20 @@ public class CreditSource : ITransactionSource
                 CreditGuid = Guid.NewGuid(),
                 AccountID = "A210020",
                 AmountCents = 13000/100,
-                Merchant = customerID,
+                Merchant = "1",
                 Description = "TicketPro",
                 TimeStamp = DateTime.UtcNow.Date.Add(TimeSpan.FromDays(-60)).ToString("o")
-            }
+            },
+            new CreditRawTransactions
+            {
+                Source = "CX",
+                CreditGuid = Guid.NewGuid(),
+                AccountID = "A210020",
+                AmountCents = 13000/100,
+                Merchant = "2",
+                Description = "Spar",
+                TimeStamp = DateTime.UtcNow.Date.Add(TimeSpan.FromDays(-60)).ToString("o")
+            },
         };
     }
 }

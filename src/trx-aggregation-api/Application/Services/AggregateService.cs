@@ -60,14 +60,26 @@ public class AggregateService : IAggregateService
 
                 foreach (var customerID in customerAggregationCommand.CustomerIds)
                 {
+                    token.ThrowIfCancellationRequested();
+                    
                     List<RawTransaction> allRaw = null;
-                    try
+
+                    foreach (var source in _transactionSources)
                     {
-                        var rawResults = await Task.WhenAll(
-                            _transactionSources.Select(s => s.GettransactionsAsync(customerID)));
-                        allRaw = rawResults.SelectMany(x => x).ToList();
+                        try
+                        {
+                            var sourceTransactions = await source.GettransactionsAsync(customerID);
+                            if (sourceTransactions != null)
+                                allRaw.AddRange(sourceTransactions);
+                        }
+                        catch (Exception ex)
+                        {
+                            _loggingService.LogError(
+                                LoggingMessages.Exception(nameof(AggregateService),
+                                $"Source {source.GetType().Name} failed for customer {customerID}"),ex);
+                        }
                     }
-                    catch (Exception ex)
+                    if (!allRaw.Any())
                     {
                         _loggingService.LogError(
                             LoggingMessages.Exception(
@@ -80,7 +92,8 @@ public class AggregateService : IAggregateService
                         .ToList();
 
                     var filteredTransactions = normalisedTransactions
-                        .Where(t => (!customerAggregationCommand.FromDate.HasValue ||
+                        .Where(t => t.CustomerID == customerID && 
+                                    (!customerAggregationCommand.FromDate.HasValue ||
                                      t.TransactionDate >= customerAggregationCommand.FromDate.Value) &&
                                     (!customerAggregationCommand.ToDate.HasValue ||
                                      t.TransactionDate <= customerAggregationCommand.ToDate.Value))
