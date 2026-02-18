@@ -5,7 +5,6 @@ using aggregate_api.Core.FluentValidators.Services.Contracts;
 using aggregate_api.Infrastructure.Contracts;
 using AutoMapper;
 using aggregate_api.Application.Interfaces;
-using aggregate_api.Infrastructure;
 using FluentValidation;
 
 namespace aggregate_api.Application.Services;
@@ -49,18 +48,27 @@ public class AggregateService : IAggregateService
 
         var response = new ResponseModel<List<AggregatedCustomerTransactionsDto>>(new List<AggregatedCustomerTransactionsDto>());
 
-        // Validate command
-        response.MergeResponses(_fluentValidationService.ValidateAggregateCommand(customerAggregationCommand, _aggregateDtoValidator));
+        response.MergeResponses(_fluentValidationService.ValidateAggregateCommand(
+            customerAggregationCommand, _aggregateDtoValidator));
+
         if (!response.IsValid) return response;
 
         try
         {
-            foreach (var customerId in customerAggregationCommand.CustomerIds)
+            foreach (var customerID in customerAggregationCommand.CustomerIds)
             {
                 token.ThrowIfCancellationRequested();
 
-                var customerResult = await AggregateCustomerAsync(customerId, customerAggregationCommand, token);
-                response.Data.Add(customerResult);
+                var filter = new CustomerTransactionFilter
+                {
+                    CustomerID = customerID,
+                    FromDate = customerAggregationCommand.FromDate,
+                    ToDate = customerAggregationCommand.ToDate
+                };
+
+                var aggregatedCustomer = await AggregateCustomerAsync(filter, token);
+
+                response.Data.Add(aggregatedCustomer);
             }
 
             return response;
@@ -68,7 +76,7 @@ public class AggregateService : IAggregateService
         catch (OperationCanceledException)
         {
             _loggingService.LogWarning(LoggingMessages.Exception("AggregationService", "Request Cancelled"));
-            response.Errors.Add("Request was cancelled");
+            response.Errors.Add("Request was Cancelled");
             return response;
         }
         catch (Exception ex)
@@ -79,10 +87,11 @@ public class AggregateService : IAggregateService
         }
     }
 
-    // ---------------- Private helper ----------------
+    // -----------------------------
+    // Private method for single customer aggregation
+    // -----------------------------
     private async Task<AggregatedCustomerTransactionsDto> AggregateCustomerAsync(
-        string customerId,
-        CustomerAggregationCommand command,
+        CustomerTransactionFilter filter,
         CancellationToken token)
     {
         var allRaw = new List<RawTransaction>();
@@ -91,7 +100,7 @@ public class AggregateService : IAggregateService
         {
             try
             {
-                var sourceTransactions = await source.GettransactionsAsync(customerId);
+                var sourceTransactions = await source.GettransactionsAsync(filter.CustomerID);
                 if (sourceTransactions != null)
                     allRaw.AddRange(sourceTransactions);
             }
@@ -99,15 +108,16 @@ public class AggregateService : IAggregateService
             {
                 _loggingService.LogError(
                     LoggingMessages.Exception(nameof(AggregateService),
-                    $"Source {source.GetType().Name} failed for customer {customerId}"), ex);
+                    $"Source {source.GetType().Name} failed for customer {filter.CustomerID}"), ex);
             }
         }
 
         if (!allRaw.Any())
         {
             _loggingService.LogError(
-                LoggingMessages.Exception(nameof(AggregateService),
-                $"No transactions retrieved for customer {customerId}"));
+                LoggingMessages.Exception(
+                    nameof(AggregateService),
+                    $"Failed to retrieve transactions for customer {filter.CustomerID}"));
         }
 
         var normalisedTransactions = allRaw
@@ -115,9 +125,10 @@ public class AggregateService : IAggregateService
             .ToList();
 
         var filteredTransactions = normalisedTransactions
-            .Where(t => t.CustomerID == customerId &&
-                        (!command.FromDate.HasValue || t.TransactionDate >= command.FromDate.Value) &&
-                        (!command.ToDate.HasValue || t.TransactionDate <= command.ToDate.Value))
+            .Where(t =>
+                t.CustomerID == filter.CustomerID &&
+                (!filter.FromDate.HasValue || t.TransactionDate >= filter.FromDate.Value) &&
+                (!filter.ToDate.HasValue || t.TransactionDate <= filter.ToDate.Value))
             .ToList();
 
         var categorisedTransactions = _transactionCategoriser.Categorise(filteredTransactions);
@@ -134,7 +145,7 @@ public class AggregateService : IAggregateService
 
         return new AggregatedCustomerTransactionsDto
         {
-            CustomerID = customerId,
+            CustomerID = filter.CustomerID,
             CategoryAggregates = aggregatedTransactions
         };
     }
