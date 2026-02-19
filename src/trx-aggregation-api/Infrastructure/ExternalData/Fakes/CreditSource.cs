@@ -4,8 +4,13 @@ namespace aggregate_api.Infrastructure.ExternalData;
 
 public class CreditSource : ITransactionSource
 {
-    public  async Task<IEnumerable<RawTransaction>> GettransactionsAsync(string customerID)
+    public  async Task<IEnumerable<RawTransaction>> GettransactionsAsync(string customerID,CancellationToken token)
     {
+        
+        // This Faking transaction from a KAFKA topic
+        
+        token.ThrowIfCancellationRequested();
+        
         return new List<RawTransaction>
         {
             new CreditRawTransactions

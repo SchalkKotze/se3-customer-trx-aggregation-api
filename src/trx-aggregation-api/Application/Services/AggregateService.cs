@@ -5,6 +5,7 @@ using aggregate_api.Core.FluentValidators.Services.Contracts;
 using aggregate_api.Infrastructure.Contracts;
 using AutoMapper;
 using aggregate_api.Application.Interfaces;
+using aggregate_api.Infrastructure;
 using FluentValidation;
 
 namespace aggregate_api.Application.Services;
@@ -55,13 +56,13 @@ public class AggregateService : IAggregateService
 
         try
         {
-            foreach (var customerID in customerAggregationCommand.CustomerIds)
+            foreach (var customerId in customerAggregationCommand.CustomerIds)
             {
                 token.ThrowIfCancellationRequested();
 
                 var filter = new CustomerTransactionFilter
                 {
-                    CustomerID = customerID,
+                    CustomerID = customerId,
                     FromDate = customerAggregationCommand.FromDate,
                     ToDate = customerAggregationCommand.ToDate
                 };
@@ -87,20 +88,22 @@ public class AggregateService : IAggregateService
         }
     }
 
-    // -----------------------------
-    // Private method for single customer aggregation
-    // -----------------------------
     private async Task<AggregatedCustomerTransactionsDto> AggregateCustomerAsync(
         CustomerTransactionFilter filter,
         CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
+        
         var allRaw = new List<RawTransaction>();
 
         foreach (var source in _transactionSources)
         {
             try
             {
-                var sourceTransactions = await source.GettransactionsAsync(filter.CustomerID);
+                var sourceTransactions = await source.GettransactionsAsync(
+                    filter.CustomerID,
+                    token);
+                
                 if (sourceTransactions != null)
                     allRaw.AddRange(sourceTransactions);
             }
