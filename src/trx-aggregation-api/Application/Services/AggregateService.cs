@@ -131,7 +131,7 @@ public class AggregateService : IAggregateService
         var filteredTransactions = normalisedTransactions
             .Where(t =>
                 t.CustomerID == filter.CustomerID &&
-                t.Source.Equals( filter.SourceSystem )&&
+                (string.IsNullOrWhiteSpace( filter.SourceSystem ) || t.Source == filter.SourceSystem) && 
                 (!filter.FromDate.HasValue || t.TransactionDate >= filter.FromDate.Value) &&
                 (!filter.ToDate.HasValue || t.TransactionDate <= filter.ToDate.Value))
             .ToList();

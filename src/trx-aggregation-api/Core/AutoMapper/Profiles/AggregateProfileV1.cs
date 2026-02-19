@@ -12,17 +12,28 @@ public class AggregateProfileV1 : Profile
     {
         CreateMap<SendAggregateRequest, CustomerAggregationCommand>()
             .ForMember(dest => dest.CustomerIds,
-                opt => opt.MapFrom(src => src.CustomerIds))
+                opt => 
+                    opt.MapFrom(src => src.CustomerIds))
+            
             .ForMember(dest => dest.CorrelationId,
-                opt => opt.MapFrom(_ => Guid.NewGuid()))
+                opt => 
+                    opt.MapFrom(_ => Guid.NewGuid()))
+            
             .ForMember(dest => dest.EventTriggerDate,
-                opt => opt.MapFrom(_ => DateTime.UtcNow.ToString("o")))
+                opt => 
+                    opt.MapFrom(_ => DateTime.UtcNow.ToString("o")))
+            
             .ForMember(dest => dest.FromDate,
-                opt => opt.MapFrom(src => src.FromDate))
+                opt => 
+                    opt.MapFrom(src => src.FromDate.HasValue?src.FromDate:null))
+            
             .ForMember(dest => dest.ToDate,
-                opt => opt.MapFrom(src => src.ToDate))
+                opt => 
+                    opt.MapFrom(src => src.ToDate.HasValue?src.ToDate:null))
+            
             .ForMember(dest => dest.SourceSystem,
-                opt => opt.MapFrom(src => src.SourceSystem));
+                opt => 
+                    opt.MapFrom(src => src.SourceSystem));
 
     }
 }
