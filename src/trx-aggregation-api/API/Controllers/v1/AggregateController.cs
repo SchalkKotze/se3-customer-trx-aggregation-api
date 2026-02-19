@@ -1,217 +1,142 @@
 using System.Security.Claims;
 using aggregate_api.Application.Domain.Constants;
-using aggregate_api.Application.Dtos;
 using aggregate_api.Application.Domain.Requests.v1;
 using aggregate_api.Application.Interfaces;
-using aggregate_api.Application.Services.Contracts;
 using aggregate_api.Core.Swagger.Filters;
 using aggregate_api.Infrastructure.Contracts;
 using AutoMapper;
 using aggregate_api.Core.AutoMapper.Extentions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace aggregate_api.Application.Controllers.v1;
 
 [ApiController]
 [Route("api/v1/aggregation")]
+[Authorize]
 public class AggregationController : ControllerBase
 {
     private readonly ILoggingService _loggingService;
     private readonly IMapper _mapper;
     private readonly IAggregateService _aggregateService;
 
-    public AggregationController(ILoggingService loggingService,
-                            IMapper mapper,
-                            IAggregateService aggregateService)
+    public AggregationController(
+        ILoggingService loggingService,
+        IMapper mapper,
+        IAggregateService aggregateService)
     {
         _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _aggregateService = aggregateService ?? throw new ArgumentNullException(nameof(aggregateService));
     }
-    
-   /* [HttpPost("unauth-customers")]
+
+    // ------------------------------------------------------------------
+    // 1. Aggregate SINGLE customer (optional date filtering)
+    // GET /api/v1/aggregation/customers/{customerId}?days=30
+    // GET /api/v1/aggregation/customers/{customerId}?fromDate=...&toDate=...
+    // ------------------------------------------------------------------
+    [HttpGet("customers/{customerId}")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
-    public async Task<IActionResult> UnauthAggregateListAsync(SendAggregateRequest request, CancellationToken token)
+    public async Task<IActionResult> AggregateSingleCustomerAsync(
+        string customerId,
+        int? days,
+        DateTime? fromDate,
+        DateTime? toDate,
+        CancellationToken token)
     {
         try
         {
+            if (days.HasValue && (fromDate.HasValue || toDate.HasValue))
+                return BadRequest("Use either 'days' OR 'fromDate/toDate', not both.");
 
-            var aggregateCommand = _mapper.Map<CustomerAggregationCommand>(request);
-            
-            var responseModel = await _aggregateService.AggregateClientsAsync(aggregateCommand, token);
-            
-            if (responseModel.IsValid)
-            {
-                return Ok(responseModel.Data);
-            }
+            if (days.HasValue && days <= 0)
+                return BadRequest("Days must be greater than zero.");
 
-            return BadRequest(responseModel);
-        }
-        catch (Exception ex)
-        {
-            _loggingService.LogError(LoggingMessages.Exception("AggregateController", "UnauthAggregateAsync"), ex);
-            
-            return StatusCode(500);
-        }
-    }
-    */
-    [Authorize]
-    [HttpGet("customer")]
-    [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
-    [ApiExplorerSettings(GroupName = "v1")]
-    public async Task<IActionResult> UnauthAggregateSingleAsync(string request, CancellationToken token)
-    {
-        try
-        {
-            var aggregateCommand = new CustomerAggregationCommand
+            var command = new CustomerAggregationCommand
             {
                 CorrelationId = Guid.NewGuid().ToString(),
-                CustomerIds = new [] {request},
-                EventTriggerDate = DateTime.UtcNow
+                CustomerIds = new[] { customerId },
+                FromDate = days.HasValue ? DateTime.UtcNow.AddDays(-days.Value) : fromDate,
+                ToDate = days.HasValue ? DateTime.UtcNow : toDate
             };
-            
-            var responseModel = await _aggregateService.AggregateClientsAsync(aggregateCommand, token);
-            
-            if (responseModel.IsValid)
-            {
-                return Ok(responseModel.Data.Single());
-            }
 
-            return BadRequest(responseModel);
+            var response = await _aggregateService.AggregateClientsAsync(command, token);
+
+            return response.IsValid
+                ? Ok(response.Data.Single())
+                : BadRequest(response);
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499); // Client Closed Request (useful signal)
         }
         catch (Exception ex)
         {
-            _loggingService.LogError(LoggingMessages.Exception("AggregateController", "UnauthAggregateAsync"), ex);
-            
-            return StatusCode(500);
-        }
-    }
-    [Authorize]
-    [HttpGet("customer-history")]
-    [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
-    [ApiExplorerSettings(GroupName = "v1")]
-    public async Task<IActionResult> UnauthAggregateSingle30Async(string request,
-         int days = 30,
-        CancellationToken token = default)
-    {
-        try
-        {
-            if (days <= 0) return BadRequest("Days must be greater than 0");
-            
-            var aggregateCommand = new CustomerAggregationCommand
-            {
-                CorrelationId = Guid.NewGuid().ToString(),
-                CustomerIds = new [] {request},
-                EventTriggerDate = DateTime.UtcNow,
-                FromDate = DateTime.UtcNow.Add(TimeSpan.FromDays(-days)),
-                ToDate = DateTime.UtcNow
-                
-            };
-            
-            var responseModel = await _aggregateService.AggregateClientsAsync(aggregateCommand, token);
-            
-            if (responseModel.IsValid)
-            {
-                return Ok(responseModel.Data.Single());
-            }
+            _loggingService.LogError(
+                LoggingMessages.Exception(nameof(AggregationController), nameof(AggregateSingleCustomerAsync)),
+                ex);
 
-            return BadRequest(responseModel);
-        }
-        catch (Exception ex)
-        {
-            _loggingService.LogError(LoggingMessages.Exception("AggregateController", "UnauthAggregateAsync"), ex);
-            
             return StatusCode(500);
         }
     }
-    
-    [Authorize]
+
+    // ------------------------------------------------------------------
+    // 2. Aggregate MULTIPLE customers
+    // POST /api/v1/aggregation/customers
+    // ------------------------------------------------------------------
     [HttpPost("customers")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
-    public async Task<IActionResult> AggregateAsync(SendAggregateRequest request, CancellationToken token)
+    public async Task<IActionResult> AggregateCustomersAsync(
+        SendAggregateRequest request,
+        CancellationToken token)
     {
         try
         {
-            var aggregationCommand = _mapper.Map<CustomerAggregationCommand>(request)
+            var command = _mapper.Map<CustomerAggregationCommand>(request)
                 .WithAppId(GetClaimValue("appid"))
                 .WithAppDisplayName(GetClaimValue("app_displayname"))
                 .WithUserRoles(GetRoleValues())
-                .WithCorrelationId(string.Empty);
+                .WithCorrelationId(Guid.NewGuid().ToString());
 
-            var responseModel = await _aggregateService.AggregateClientsAsync(aggregationCommand, token);
-            
-            if (responseModel.IsValid)
-            {
-                return Ok(responseModel.Data);
-            }
+            var response = await _aggregateService.AggregateClientsAsync(command, token);
 
-            return BadRequest(responseModel);
+            return response.IsValid
+                ? Ok(response.Data)
+                : BadRequest(response);
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499);
         }
         catch (Exception ex)
         {
-            _loggingService.LogError(LoggingMessages.Exception("AggregateController", "SendAsync"), ex);
-            
+            _loggingService.LogError(
+                LoggingMessages.Exception(nameof(AggregationController), nameof(AggregateCustomersAsync)),
+                ex);
+
             return StatusCode(500);
         }
     }
-   
- /*
-    [Authorize]
-    [HttpPost("customers-history")]
-    [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
-    [ApiExplorerSettings(GroupName = "v1")]
-    public async Task<IActionResult> UnauthAggregateMultipleDaysAsync(SendAggregateRequest request,   int days = 30, CancellationToken token)
-    {
-        try
-        {
-            if (days <= 0) return BadRequest("Days must be greater than 0");
-            
-            var aggregationCommand = _mapper.Map<CustomerAggregationCommand>(request)
-                .WithAppId(GetClaimValue("appid"))
-                .WithAppDisplayName(GetClaimValue("app_displayname"))
-                .WithUserRoles(GetRoleValues())
-                .WithCorrelationId(string.Empty);
 
-            var responseModel = await _aggregateService.AggregateClientsAsync(aggregationCommand, token);
-            
-            if (responseModel.IsValid)
-            {
-                return Ok(responseModel.Data);
-            }
-
-            return BadRequest(responseModel);
-        }
-        catch (Exception ex)
-        {
-            _loggingService.LogError(LoggingMessages.Exception("AggregateController", "SendAsync"), ex);
-            
-            return StatusCode(500);
-        }
-    }
-*/
-
-    #region Private Functions
-    
+    // ------------------------------------------------------------------
+    // Private helpers
+    // ------------------------------------------------------------------
     private string GetClaimValue(string claimType)
     {
         var claimsIdentity = User.Identity as ClaimsIdentity;
-        var claim = claimsIdentity?.Claims.FirstOrDefault(c => c.Type == claimType);
-        return claim?.Value!;
+        return claimsIdentity?.Claims.FirstOrDefault(c => c.Type == claimType)?.Value ?? string.Empty;
     }
+
     private string GetRoleValues()
     {
         var claimsIdentity = User.Identity as ClaimsIdentity;
         var roles = claimsIdentity?.Claims
             .Where(c => c.Type == ClaimTypes.Role)
-            .Select(c => c.Value)
-            .ToList();
-        return roles != null ? string.Join(", ", roles) : string.Empty;
-    }
+            .Select(c => c.Value);
 
-    #endregion
+        return roles != null ? string.Join(",", roles) : string.Empty;
+    }
 }
