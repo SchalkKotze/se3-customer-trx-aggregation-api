@@ -64,7 +64,8 @@ public class AggregateService : IAggregateService
                 {
                     CustomerID = customerId,
                     FromDate = customerAggregationCommand.FromDate,
-                    ToDate = customerAggregationCommand.ToDate
+                    ToDate = customerAggregationCommand.ToDate,
+                    SourceSystem = customerAggregationCommand.SourceSystem
                 };
 
                 var aggregatedCustomer = await AggregateCustomerAsync(filter, token);
@@ -130,6 +131,7 @@ public class AggregateService : IAggregateService
         var filteredTransactions = normalisedTransactions
             .Where(t =>
                 t.CustomerID == filter.CustomerID &&
+                t.Source.Equals( filter.SourceSystem )&&
                 (!filter.FromDate.HasValue || t.TransactionDate >= filter.FromDate.Value) &&
                 (!filter.ToDate.HasValue || t.TransactionDate <= filter.ToDate.Value))
             .ToList();

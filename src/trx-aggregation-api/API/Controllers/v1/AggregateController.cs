@@ -1,9 +1,12 @@
 using System.Security.Claims;
 using aggregate_api.Application.Domain.Constants;
 using aggregate_api.Application.Domain.Requests.v1;
+using aggregate_api.Application.Dtos;
 using aggregate_api.Application.Interfaces;
 using aggregate_api.Application.Services.Contracts;
+using aggregate_api.Core.AutoMapper.Extentions;
 using aggregate_api.Core.Swagger.Filters;
+using aggregate_api.Infrastructure.Contracts;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
