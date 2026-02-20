@@ -14,12 +14,6 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace aggregate_api.Application.Controllers.v1;
 
-//GET /aggregates/transactions
-//GET /aggregates/balances
-//GET /aggregates/spend-by-category
-//GET /aggregates/monthly-summary
-
-
 
 [ApiController]
 [Authorize]
@@ -123,7 +117,7 @@ public async Task<IActionResult> GetBalancesAsync(
         [FromQuery] List<string> customerIds,
         CancellationToken cancellationToken)
     {
-       
+       try{
         var command = new CustomerAggregationCommand
         {
             CorrelationId = Guid.NewGuid().ToString(),
@@ -134,15 +128,69 @@ public async Task<IActionResult> GetBalancesAsync(
         .WithAppDisplayName(GetClaimValue("app_displayname"))
         .WithUserRoles(GetRoleValues());
 
-        var result = await _aggregateService.GetSpendByCategoryAsync(command, cancellationToken);
+        var response = await _aggregateService.GetSpendByCategoryAsync(command, cancellationToken);
 
-        if (!result.IsValid)
-            return StatusCode(207, result); // Multi-Status for partial failures
+         return response.IsValid
+            ? Ok(response)
+            : BadRequest(response);
+       }
+       catch(OperationCanceledException)
+    {
+        return StatusCode(StatusCodes.Status499ClientClosedRequest);
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+                LoggingMessages.Exception(nameof(AggregationController), nameof(AggregateAsync)), ex);
 
-        return Ok(result);
+            return StatusCode(StatusCodes.Status500InternalServerError);
     }
 
+    }
 
+[HttpGet("monthly-summary")]
+[ApiExplorerSettings(GroupName = "v1")]
+public async Task<IActionResult> GetMonthlySummaryAsync(
+    [FromQuery] List<string> customerIds,
+    [FromQuery] DateTime? fromDate,
+    [FromQuery] DateTime? toDate,
+    CancellationToken token)
+{
+    try
+    {
+       
+
+        var command = new CustomerAggregationCommand
+        {
+            CorrelationId = Guid.NewGuid().ToString(),
+            CustomerIds = customerIds,
+            FromDate = fromDate,
+            ToDate = toDate,
+            EventTriggerDate = DateTime.UtcNow
+        }
+        .WithAppId(GetClaimValue("appid"))
+        .WithAppDisplayName(GetClaimValue("app_displayname"))
+        .WithUserRoles(GetRoleValues());
+
+        var response =
+            await _aggregateService.GetMonthlySummaryAsync(command, token);
+
+        return response.IsValid
+            ? Ok(response)
+            : BadRequest(response);
+    }
+    catch (OperationCanceledException)
+    {
+        return StatusCode(StatusCodes.Status499ClientClosedRequest);
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+                LoggingMessages.Exception(nameof(AggregationController), nameof(AggregateAsync)), ex);
+
+            return StatusCode(StatusCodes.Status500InternalServerError);
+    }
+}
 
     [HttpGet("customer/{customerId}")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]

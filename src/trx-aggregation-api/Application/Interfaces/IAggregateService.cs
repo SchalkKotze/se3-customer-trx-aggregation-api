@@ -15,6 +15,10 @@ public interface IAggregateService
         CustomerAggregationCommand command,
         CancellationToken cancellationToken);    
 
+    Task<ResponseModel<List<CustomerMonthlySummaryDto>>> GetMonthlySummaryAsync(
+    CustomerAggregationCommand command,
+    CancellationToken token);    
+
 }
 
 

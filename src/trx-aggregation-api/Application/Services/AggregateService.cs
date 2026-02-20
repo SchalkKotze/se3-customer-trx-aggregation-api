@@ -261,6 +261,94 @@ public async Task<ResponseModel<List<SpendByCategoryDto>>> GetSpendByCategoryAsy
         return response;
     }
 }
+
+public async Task<ResponseModel<List<CustomerMonthlySummaryDto>>> GetMonthlySummaryAsync(
+    CustomerAggregationCommand command,
+    CancellationToken token)
+{
+    _loggingService.LogTrace(
+        LoggingMessages.Executing(nameof(AggregateService), nameof(GetMonthlySummaryAsync)));
+
+    var response =
+        new ResponseModel<List<CustomerMonthlySummaryDto>>(
+            new List<CustomerMonthlySummaryDto>());
+
+    response.MergeResponses(
+        _fluentValidationService.ValidateAggregateCommand(
+            command,
+            _aggregateDtoValidator));
+
+    if (!response.IsValid)
+        return response;
+
+    try
+    {
+        foreach (var customerId in command.CustomerIds)
+        {
+            token.ThrowIfCancellationRequested();
+
+            var filter = new CustomerTransactionFilter
+            {
+                CustomerID = customerId,
+                FromDate = command.FromDate,
+                ToDate = command.ToDate,
+                SourceSystem = command.SourceSystem
+            };
+
+        
+            var transactions =
+                await GetNormaliseFilterAndCategoriseAsync(filter, token);
+
+            var monthlySummaries = transactions
+                .GroupBy(t => new { t.TransactionDate.Year, t.TransactionDate.Month })
+                .Select(g =>
+                {
+                    var inflow = g.Where(t => t.Amount > 0).Sum(t => t.Amount);
+                    var outflow = g.Where(t => t.Amount < 0).Sum(t => t.Amount);
+
+                    return new CustomerMonthlySummaryDto
+                    {
+                        CustomerID = customerId,
+                        Year = g.Key.Year,
+                        Month = g.Key.Month,
+                        TotalInflow = inflow,
+                        TotalOutflow = Math.Abs(outflow),
+                        NetAmount = inflow + outflow,
+                        TransactionCount = g.Count()
+                    };
+                })
+                .OrderBy(r => r.Year)
+                .ThenBy(r => r.Month);
+
+            response.Data.AddRange(monthlySummaries);
+        }
+
+        return response;
+    }
+    catch (OperationCanceledException)
+    {
+        _loggingService.LogWarning(
+            LoggingMessages.Exception(
+                nameof(AggregateService),
+                "Request Cancelled"));
+
+        response.Errors.Add("Request was cancelled");
+        return response;
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+            LoggingMessages.Exception(
+                nameof(AggregateService),
+                "Unexpected Failure"),
+            ex);
+
+        response.Errors.Add(
+            "An unexpected error occurred while processing monthly summary");
+
+        return response;
+    }
+}
     
     private async Task<AggregatedCustomerTransactionsDto> AggregateCustomerAsync(
         CustomerTransactionFilter filter,
