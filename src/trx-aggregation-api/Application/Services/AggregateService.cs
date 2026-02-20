@@ -45,6 +45,8 @@ public class AggregateService : IAggregateService
         _aggregateDtoValidator = aggregateValidator ?? throw new ArgumentNullException(nameof(aggregateValidator));
     }
     
+    //Services Entry Points
+    
     public async Task<ResponseModel<List<AggregatedCustomerTransactionsDto>>> AggregateClientsAsync(
         CustomerAggregationCommand customerAggregationCommand,
         CancellationToken token)
@@ -78,10 +80,24 @@ public class AggregateService : IAggregateService
                     SourceSystem = customerAggregationCommand.SourceSystem
                 };
 
-                var aggregatedCustomer =
-                    await AggregateCustomerAsync(filter, token);
+                 var transactions =
+                await GetNormaliseFilterAndCategoriseAsync(filter, token);
 
-                response.Data.Add(aggregatedCustomer);
+                 var categoryAggregates = transactions
+                     .GroupBy(t => t.Category)
+                     .Select(g => new AggregatedCategoryResultsDtos
+                     {
+                         Category = g.Key,
+                         Amount = g.Sum(t => t.Amount),
+                         TransactionCount = g.Count()
+                     })
+                     .ToList();
+
+                 response.Data.Add( new AggregatedCustomerTransactionsDto
+                 {
+                     CustomerID = filter.CustomerID,
+                     CategoryAggregates = categoryAggregates
+                 });
             }
 
             return response;
@@ -350,31 +366,13 @@ public async Task<ResponseModel<List<CustomerMonthlySummaryDto>>> GetMonthlySumm
     }
 }
     
-    private async Task<AggregatedCustomerTransactionsDto> AggregateCustomerAsync(
-        CustomerTransactionFilter filter,
-        CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-
-        var transactions =
-            await GetNormaliseFilterAndCategoriseAsync(filter, token);
-
-        var categoryAggregates = transactions
-            .GroupBy(t => t.Category)
-            .Select(g => new AggregatedCategoryResultsDtos
-            {
-                Category = g.Key,
-                Amount = g.Sum(t => t.Amount),
-                TransactionCount = g.Count()
-            })
-            .ToList();
-
-        return new AggregatedCustomerTransactionsDto
-        {
-            CustomerID = filter.CustomerID,
-            CategoryAggregates = categoryAggregates
-        };
-    }
+// Private Methods
+    
+    // Main Pipe for Data : Gets Data
+    //                      Normalises Data 
+    //                      Filters data based on object
+    //                      Categorises data
+    //                      And returns List of Uniform Transactions
     
     private async Task<List<Transaction>> GetNormaliseFilterAndCategoriseAsync(
         CustomerTransactionFilter filter,
