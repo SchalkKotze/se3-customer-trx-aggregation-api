@@ -22,7 +22,11 @@ dotnet test
 3 Positive Tests
 1 Negative Test
 
-Endpoints
+Test Data
+
+Raw transactions are mocked from a DBsource (BX) Banks, a Kafka Source (CX) Credit , and an Api (Investments) Investments
+
+Endpoints 
 
     /api/v1/aggregation/categories
     Sample Request Object
@@ -39,6 +43,9 @@ Endpoints
 
 Test Data only exist for Customer 1 and 2.
 Sources are BX (banks),CX (Credit)
+
+
+
  ## JWT
 All endpoints are [Authorize]
 
