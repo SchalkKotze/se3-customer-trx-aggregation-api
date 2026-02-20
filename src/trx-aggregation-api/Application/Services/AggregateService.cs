@@ -113,6 +113,80 @@ public class AggregateService : IAggregateService
         }
     }
 
+
+
+    public async Task<ResponseModel<List<CustomerBalanceDto>>> GetBalancesAsync(
+    CustomerAggregationCommand command,
+    CancellationToken token)
+{
+    _loggingService.LogTrace(
+        LoggingMessages.Executing(nameof(AggregateService), nameof(GetBalancesAsync)));
+
+    var response =
+        new ResponseModel<List<CustomerBalanceDto>>(new List<CustomerBalanceDto>());
+
+    response.MergeResponses(
+        _fluentValidationService.ValidateAggregateCommand(
+            command,
+            _aggregateDtoValidator));
+
+    if (!response.IsValid)
+        return response;
+
+    try
+    {
+        foreach (var customerId in command.CustomerIds)
+        {
+            token.ThrowIfCancellationRequested();
+
+            var filter = new CustomerTransactionFilter
+            {
+                CustomerID = customerId,
+                FromDate = command.FromDate,
+                ToDate = command.ToDate,
+                SourceSystem = command.SourceSystem
+            };
+
+            // 🔁 REUSE PIPELINE
+            var transactions =
+                await GetNormaliseFilterAndCategoriseAsync(filter, token);
+
+            var balance = transactions.Sum(t => t.Amount);
+
+            response.Data.Add(new CustomerBalanceDto
+            {
+                CustomerID = customerId,
+                Balance = balance
+            });
+        }
+
+        return response;
+    }
+    catch (OperationCanceledException)
+    {
+        _loggingService.LogWarning(
+            LoggingMessages.Exception(
+                nameof(AggregateService),
+                "Request Cancelled"));
+
+        response.Errors.Add("Request was cancelled");
+        return response;
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+            LoggingMessages.Exception(
+                nameof(AggregateService),
+                "Unexpected Failure"),
+            ex);
+
+        response.Errors.Add(
+            "An unexpected error occurred while processing balances");
+
+        return response;
+    }
+}
+
     // =========================
     // AGGREGATE PER CUSTOMER
     // =========================

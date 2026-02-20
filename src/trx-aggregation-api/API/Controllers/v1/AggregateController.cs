@@ -75,11 +75,10 @@ public class AggregationController : ControllerBase
         }
     }
     
-/*
 [HttpGet("balances")]
 [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
 [ApiExplorerSettings(GroupName = "v1")]
-public async Task<IActionResult> GetAggregatedBalancesAsync(
+public async Task<IActionResult> GetBalancesAsync(
     [FromQuery] DateTime? fromDate,
     [FromQuery] DateTime? toDate,
     CancellationToken token)
@@ -92,15 +91,17 @@ public async Task<IActionResult> GetAggregatedBalancesAsync(
             FromDate = fromDate,
             ToDate = toDate,
             EventTriggerDate = DateTime.UtcNow,
-            AppId = GetClaimValue("appid"),
-            AppName = GetClaimValue("app_displayname"),
-            UserRoles = GetRoleValues(),
-            CustomerIds = Array.Empty<string>() // all customers
-        };
+            CustomerIds = new[] { "1", "2" }, // see helper below
+        }
+        .WithAppId(GetClaimValue("appid"))
+        .WithAppDisplayName(GetClaimValue("app_displayname"))
+        .WithUserRoles(GetRoleValues());
 
-        var response = await _aggregateService.AggregateBalancesAsync(command, token);
+        var response = await _aggregateService.GetBalancesAsync(command, token);
 
-        return response.IsValid ? Ok(response) : BadRequest(response);
+        return response.IsValid
+            ? Ok(response)
+            : BadRequest(response);
     }
     catch (OperationCanceledException)
     {
@@ -109,17 +110,11 @@ public async Task<IActionResult> GetAggregatedBalancesAsync(
     catch (Exception ex)
     {
         _loggingService.LogError(
-            LoggingMessages.Exception(nameof(AggregationController), nameof(GetAggregatedBalancesAsync)), ex);
+                LoggingMessages.Exception(nameof(AggregationController), nameof(AggregateAsync)), ex);
 
-        var errorResponse = new ResponseModel<List<AggregatedCustomerTransactionsDto>>();
-        errorResponse.AddException(ex.Message);
-        return StatusCode(StatusCodes.Status500InternalServerError, errorResponse);
+            return StatusCode(StatusCodes.Status500InternalServerError);
     }
 }
-
-
-
-*/
     
 
     [HttpGet("customer/{customerId}")]

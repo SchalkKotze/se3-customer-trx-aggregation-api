@@ -6,8 +6,11 @@ namespace aggregate_api.Application.Interfaces;
 
 public interface IAggregateService
 {
-    Task<ResponseModel<List<AggregatedCustomerTransactionsDto>>> AggregateClientsAsync(CustomerAggregationCommand customerAggregationCommand, CancellationToken token);
-
+    Task<ResponseModel<List<AggregatedCustomerTransactionsDto>>> AggregateClientsAsync(
+        CustomerAggregationCommand customerAggregationCommand, CancellationToken token);
+    Task<ResponseModel<List<CustomerBalanceDto>>> GetBalancesAsync(
+        CustomerAggregationCommand command,
+        CancellationToken token);
 
 }
 
