@@ -368,7 +368,7 @@ public async Task<ResponseModel<List<CustomerMonthlySummaryDto>>> GetMonthlySumm
     
 // Private Methods
     
-    // Main Pipe for Data : Gets Data
+    // Main Pipe for Data : Gets Data (Parallel)
     //                      Normalises Data 
     //                      Filters data based on object
     //                      Categorises data
@@ -381,32 +381,30 @@ public async Task<ResponseModel<List<CustomerMonthlySummaryDto>>> GetMonthlySumm
         token.ThrowIfCancellationRequested();
 
         var allRawTransactions = new List<RawTransaction>();
-
-     
+        
         var fetchTasks = _transactionSources.Select(async source =>
-{
-    try
-    {
-        return await source.GettransactionsAsync(filter.CustomerID, token)
-               ?? Enumerable.Empty<RawTransaction>();
-    }
-    catch (Exception ex)
-    {
-        _loggingService.LogError(
-            LoggingMessages.Exception(
-                nameof(AggregateService),
-                $"Source {source.GetType().Name} failed for customer {filter.CustomerID}"),
-            ex);
+            {
+                try
+                {
+                    return await source.GettransactionsAsync(filter.CustomerID, token)
+                           ?? Enumerable.Empty<RawTransaction>();
+                }
+                catch (Exception ex)
+                {
+                    _loggingService.LogError(
+                        LoggingMessages.Exception(
+                            nameof(AggregateService),
+                            $"Source {source.GetType().Name} failed for customer {filter.CustomerID}"),
+                        ex);
 
-        // 🔴 Partial failure → empty result, not a hard failure
-        return Enumerable.Empty<RawTransaction>();
-    }
-});
+                    return Enumerable.Empty<RawTransaction>();
+                }
+            });
 
-var results = await Task.WhenAll(fetchTasks);
+        var results = await Task.WhenAll(fetchTasks);
 
-// Flatten results
- allRawTransactions = results.SelectMany(r => r).ToList();
+        // Flatten results
+        allRawTransactions = results.SelectMany(r => r).ToList();
 
         if (!allRawTransactions.Any())
         {
