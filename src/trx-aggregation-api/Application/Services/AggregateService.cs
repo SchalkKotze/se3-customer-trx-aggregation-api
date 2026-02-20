@@ -3,6 +3,7 @@ using aggregate_api.Application.Domain.Models;
 using aggregate_api.Application.Dtos;
 using aggregate_api.Application.Interfaces;
 using aggregate_api.Core.FluentValidators.Services.Contracts;
+using aggregate_api.Infrastructure;
 using aggregate_api.Infrastructure.Contracts;
 using AutoMapper;
 using FluentValidation;
@@ -43,10 +44,7 @@ public class AggregateService : IAggregateService
         _transactionCategoriser = categoriser ?? throw new ArgumentNullException(nameof(categoriser));
         _aggregateDtoValidator = aggregateValidator ?? throw new ArgumentNullException(nameof(aggregateValidator));
     }
-
-    // =========================
-    // PUBLIC ENTRY POINT
-    // =========================
+    
     public async Task<ResponseModel<List<AggregatedCustomerTransactionsDto>>> AggregateClientsAsync(
         CustomerAggregationCommand customerAggregationCommand,
         CancellationToken token)
@@ -186,10 +184,7 @@ public class AggregateService : IAggregateService
         return response;
     }
 }
-
-    // =========================
-    // AGGREGATE PER CUSTOMER
-    // =========================
+    
     private async Task<AggregatedCustomerTransactionsDto> AggregateCustomerAsync(
         CustomerTransactionFilter filter,
         CancellationToken token)
@@ -215,10 +210,7 @@ public class AggregateService : IAggregateService
             CategoryAggregates = categoryAggregates
         };
     }
-
-    // =========================
-    // CORE PIPELINE (REUSABLE)
-    // =========================
+    
     private async Task<List<Transaction>> GetNormaliseFilterAndCategoriseAsync(
         CustomerTransactionFilter filter,
         CancellationToken token)
@@ -227,7 +219,7 @@ public class AggregateService : IAggregateService
 
         var allRawTransactions = new List<RawTransaction>();
 
-        // 1️⃣ GET (from all sources)
+     
         foreach (var source in _transactionSources)
         {
             try
@@ -257,13 +249,11 @@ public class AggregateService : IAggregateService
 
             return new List<Transaction>();
         }
-
-        // 2️⃣ NORMALISE
+        
         var normalisedTransactions = allRawTransactions
             .Select(t => _transactionNormaliser.Normalise(t, t.Source))
             .ToList();
-
-        // 3️⃣ FILTER
+        
         var filteredTransactions = normalisedTransactions
             .Where(t =>
                 t.CustomerID == filter.CustomerID &&
@@ -274,8 +264,7 @@ public class AggregateService : IAggregateService
                 (!filter.ToDate.HasValue ||
                  t.TransactionDate <= filter.ToDate.Value))
             .ToList();
-
-        // 4️⃣ CATEGORISE
+        
         var categorisedTransactions =
             _transactionCategoriser.Categorise(filteredTransactions);
 

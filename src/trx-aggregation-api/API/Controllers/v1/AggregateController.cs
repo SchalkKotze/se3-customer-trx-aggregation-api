@@ -79,6 +79,7 @@ public class AggregationController : ControllerBase
 [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
 [ApiExplorerSettings(GroupName = "v1")]
 public async Task<IActionResult> GetBalancesAsync(
+    [FromQuery] List<string> customerIds,
     [FromQuery] DateTime? fromDate,
     [FromQuery] DateTime? toDate,
     CancellationToken token)
@@ -91,7 +92,7 @@ public async Task<IActionResult> GetBalancesAsync(
             FromDate = fromDate,
             ToDate = toDate,
             EventTriggerDate = DateTime.UtcNow,
-            CustomerIds = new[] { "1", "2" }, // see helper below
+            CustomerIds = customerIds
         }
         .WithAppId(GetClaimValue("appid"))
         .WithAppDisplayName(GetClaimValue("app_displayname"))
