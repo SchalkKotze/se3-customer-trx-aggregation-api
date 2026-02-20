@@ -3,19 +3,21 @@
 # -----------------------------
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
-WORKDIR /app
+WORKDIR /src
 
-# Copy the API csproj first
+# Copy csproj and restore dependencies
 COPY src/trx-aggregation-api/*.csproj ./trx-aggregation-api/
-
-# Restore dependencies
 RUN dotnet restore ./trx-aggregation-api/trx-aggregation-api.csproj
 
-# Copy all API source files
+# Copy only source code (avoid bin/obj)
 COPY src/trx-aggregation-api/ ./trx-aggregation-api/
 
-# Build and publish the API project
-RUN dotnet publish ./trx-aggregation-api/trx-aggregation-api.csproj -c Release -o /app/publish
+# Publish the app (clean, Release)
+RUN dotnet publish ./trx-aggregation-api/trx-aggregation-api.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore \
+    /p:UseAppHost=false
 
 # -----------------------------
 # Stage 2: Runtime
@@ -24,9 +26,10 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 
 WORKDIR /app
 
-# Copy the published output
+# Copy the published output only
 COPY --from=build /app/publish .
 
-EXPOSE 5000
+# Map internal app port (from launchSettings.json or appsettings.json)
+EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "trx-aggregation-api.dll"]
