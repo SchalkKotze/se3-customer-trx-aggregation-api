@@ -37,14 +37,37 @@ I have by means of an Environment Var in the .env supplied a toggle [USE_LOCAL_F
     TRUE : Will not expose Swagger
     FALSE: Expose Swagger
 
-## Automapper Implemented
-    To Map Requests to Commands
-## fluentValidator Implemented
+
+## Automapper is Implemented
+    To Map Requests to Standerised command
+
+## FluentValidator is Implemented
     To do validation of commands
-## Logger 
+
+## Serilog is Implemented 
+    SeriLog implemented as logging provider that replaces the default ILogger 
+    Obviously cannot reach the AWS Cloudwatch (Env Var was created to AWS Loggroup)
+    So will try to log to aws-logger-errors.txt
 
 ## Health Checks Implemented
     /health/live
     /health/ready
 
+## Transaction Aggregation Service Overview
+
+The Transaction Aggregation Service provides a unified way to retrieve and analyze customer transactions across multiple sources. At its core, the service implements a reusable pipeline that ensures consistency, maintainability, and extensibility for all aggregation endpoints. The pipeline follows a clear sequence: Get → Normalise → Filter → Categorise.
+
+Get – The service collects raw transactions from multiple configured sources (e.g., bank systems, credit systems, Kafka topics). Each source is queried independently, allowing partial failures to be logged without breaking the pipeline.
+
+Normalise – All raw transactions are converted into a standard, consistent Transaction model. This ensures that downstream processing is source-agnostic, regardless of differences in naming conventions, formats, or fields across sources.
+
+Filter – Transactions are filtered based on user-supplied criteria, such as customer ID, date range, or source system. This allows precise, on-demand queries while keeping the pipeline generic.
+
+Categorise – Finally, transactions are categorised using a dedicated TransactionCategoriser service. Categories are then used to compute balances, spend summaries, and monthly reports in a consistent, reusable way.
+
+This pipeline is leveraged by all service endpoints — including Aggregate Transactions, Balances, Spend by Category, and Monthly Summary — ensuring that any new aggregation functionality can reuse the same reliable flow without duplicating code.    
+
+## Extensibility
+
+The service is highly extensible. To integrate a new transaction source, developers simply implement the ITransactionSource interface and register the source with dependency injection. The pipeline automatically incorporates the new source into all aggregation endpoints without requiring changes to validation, filtering, or categorisation logic. This design ensures that as new systems or data streams are added, the service scales without introducing duplication or complexity.
 
