@@ -11,8 +11,7 @@ public interface IAggregateService
     Task<ResponseModel<List<CustomerBalanceDto>>> GetBalancesAsync(
         CustomerAggregationCommand command,
         CancellationToken token);
-
-    Task<ResponseModel<List<SpendByCategoryDto>>> GetSpentByCategoryAsync(
+    Task<ResponseModel<List<SpendByCategoryDto>>> GetSpendByCategoryAsync(
         List<string> customerIds,
         CancellationToken cancellationToken);    
 

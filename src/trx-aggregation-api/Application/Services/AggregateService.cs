@@ -186,16 +186,16 @@ public class AggregateService : IAggregateService
 }
 
 
-public async Task<ResponseModel<List<CustomerSpentByCategoryDto>>> GetSpentByCategoryAsync(
+public async Task<ResponseModel<List<SpendByCategoryDto>>> GetSpendByCategoryAsync(
     CustomerAggregationCommand command,
     CancellationToken token)
 {
     _loggingService.LogTrace(
-        LoggingMessages.Executing(nameof(AggregateService), nameof(GetSpentByCategoryAsync)));
+        LoggingMessages.Executing(nameof(AggregateService), nameof(GetSpendByCategoryAsync)));
 
     var response =
-        new ResponseModel<List<CustomerSpentByCategoryDto>>(
-            new List<CustomerSpentByCategoryDto>());
+        new ResponseModel<List<SpendByCategoryDto>>(
+            new List<SpendByCategoryDto>());
 
     response.MergeResponses(
         _fluentValidationService.ValidateAggregateCommand(
@@ -224,7 +224,7 @@ public async Task<ResponseModel<List<CustomerSpentByCategoryDto>>> GetSpentByCat
                 await GetNormaliseFilterAndCategoriseAsync(filter, token);
 
             var spentByCategory = transactions
-                .Where(t => t.Amount < 0) // 💸 spend only
+                .Where(t => t.Amount < 0) 
                 .GroupBy(t => t.Category)
                 .Select(g => new SpendByCategoryDto
                 {
