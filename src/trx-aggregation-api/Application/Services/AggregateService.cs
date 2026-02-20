@@ -383,25 +383,30 @@ public async Task<ResponseModel<List<CustomerMonthlySummaryDto>>> GetMonthlySumm
         var allRawTransactions = new List<RawTransaction>();
 
      
-        foreach (var source in _transactionSources)
-        {
-            try
-            {
-                var sourceTransactions =
-                    await source.GettransactionsAsync(filter.CustomerID, token);
+        var fetchTasks = _transactionSources.Select(async source =>
+{
+    try
+    {
+        return await source.GettransactionsAsync(filter.CustomerID, token)
+               ?? Enumerable.Empty<RawTransaction>();
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+            LoggingMessages.Exception(
+                nameof(AggregateService),
+                $"Source {source.GetType().Name} failed for customer {filter.CustomerID}"),
+            ex);
 
-                if (sourceTransactions != null)
-                    allRawTransactions.AddRange(sourceTransactions);
-            }
-            catch (Exception ex)
-            {
-                _loggingService.LogError(
-                    LoggingMessages.Exception(
-                        nameof(AggregateService),
-                        $"Source {source.GetType().Name} failed for customer {filter.CustomerID}"),
-                    ex);
-            }
-        }
+        // 🔴 Partial failure → empty result, not a hard failure
+        return Enumerable.Empty<RawTransaction>();
+    }
+});
+
+var results = await Task.WhenAll(fetchTasks);
+
+// Flatten results
+ allRawTransactions = results.SelectMany(r => r).ToList();
 
         if (!allRawTransactions.Any())
         {
