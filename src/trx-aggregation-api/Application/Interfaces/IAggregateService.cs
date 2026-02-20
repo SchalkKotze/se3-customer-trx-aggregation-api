@@ -12,6 +12,10 @@ public interface IAggregateService
         CustomerAggregationCommand command,
         CancellationToken token);
 
+    Task<ResponseModel<List<SpendByCategoryDto>>> GetSpentByCategoryAsync(
+        List<string> customerIds,
+        CancellationToken cancellationToken);    
+
 }
 
 

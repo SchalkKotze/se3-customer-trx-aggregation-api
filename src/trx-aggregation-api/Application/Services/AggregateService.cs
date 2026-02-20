@@ -184,6 +184,85 @@ public class AggregateService : IAggregateService
         return response;
     }
 }
+
+
+public async Task<ResponseModel<List<CustomerSpentByCategoryDto>>> GetSpentByCategoryAsync(
+    CustomerAggregationCommand command,
+    CancellationToken token)
+{
+    _loggingService.LogTrace(
+        LoggingMessages.Executing(nameof(AggregateService), nameof(GetSpentByCategoryAsync)));
+
+    var response =
+        new ResponseModel<List<CustomerSpentByCategoryDto>>(
+            new List<CustomerSpentByCategoryDto>());
+
+    response.MergeResponses(
+        _fluentValidationService.ValidateAggregateCommand(
+            command,
+            _aggregateDtoValidator));
+
+    if (!response.IsValid)
+        return response;
+
+    try
+    {
+        foreach (var customerId in command.CustomerIds)
+        {
+            token.ThrowIfCancellationRequested();
+
+            var filter = new CustomerTransactionFilter
+            {
+                CustomerID = customerId,
+                FromDate = command.FromDate,
+                ToDate = command.ToDate,
+                SourceSystem = command.SourceSystem
+            };
+
+            // 🔁 SAME PIPELINE
+            var transactions =
+                await GetNormaliseFilterAndCategoriseAsync(filter, token);
+
+            var spentByCategory = transactions
+                .Where(t => t.Amount < 0) // 💸 spend only
+                .GroupBy(t => t.Category)
+                .Select(g => new SpendByCategoryDto
+                {
+                    CustomerId = customerId,
+                    Category = g.Key,
+                    TotalSpent = Math.Abs(g.Sum(t => t.Amount)),
+                    Currency = g.First().Currency
+                });
+
+            response.Data.AddRange(spentByCategory);
+        }
+
+        return response;
+    }
+    catch (OperationCanceledException)
+    {
+        _loggingService.LogWarning(
+            LoggingMessages.Exception(
+                nameof(AggregateService),
+                "Request Cancelled"));
+
+        response.Errors.Add("Request was cancelled");
+        return response;
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+            LoggingMessages.Exception(
+                nameof(AggregateService),
+                "Unexpected Failure"),
+            ex);
+
+        response.Errors.Add(
+            "An unexpected error occurred while processing spent by category");
+
+        return response;
+    }
+}
     
     private async Task<AggregatedCustomerTransactionsDto> AggregateCustomerAsync(
         CustomerTransactionFilter filter,

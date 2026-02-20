@@ -117,6 +117,32 @@ public async Task<IActionResult> GetBalancesAsync(
     }
 }
     
+ 
+    [HttpGet("spent-by-category")]
+    public async Task<IActionResult> GetSpentByCategory(
+        [FromQuery] List<string> customerIds,
+        CancellationToken cancellationToken)
+    {
+       
+        var command = new CustomerAggregationCommand
+        {
+            CorrelationId = Guid.NewGuid().ToString(),
+            EventTriggerDate = DateTime.UtcNow,
+            CustomerIds = customerIds
+        }
+        .WithAppId(GetClaimValue("appid"))
+        .WithAppDisplayName(GetClaimValue("app_displayname"))
+        .WithUserRoles(GetRoleValues());
+
+        var result = await _aggregateService.GetSpentByCategoryAsync(customerIds, cancellationToken);
+
+        if (!result.IsValid)
+            return StatusCode(207, result); // Multi-Status for partial failures
+
+        return Ok(result);
+    }
+
+
 
     [HttpGet("customer/{customerId}")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
