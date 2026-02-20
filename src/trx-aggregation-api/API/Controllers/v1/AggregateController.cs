@@ -14,6 +14,13 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace aggregate_api.Application.Controllers.v1;
 
+//GET /aggregates/transactions
+//GET /aggregates/balances
+//GET /aggregates/spend-by-category
+//GET /aggregates/monthly-summary
+
+
+
 [ApiController]
 [Authorize]
 [Route("api/v1/aggregation")]
@@ -67,7 +74,53 @@ public class AggregationController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
+    
+/*
+[HttpGet("balances")]
+[SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
+[ApiExplorerSettings(GroupName = "v1")]
+public async Task<IActionResult> GetAggregatedBalancesAsync(
+    [FromQuery] DateTime? fromDate,
+    [FromQuery] DateTime? toDate,
+    CancellationToken token)
+{
+    try
+    {
+        var command = new CustomerAggregationCommand
+        {
+            CorrelationId = Guid.NewGuid().ToString(),
+            FromDate = fromDate,
+            ToDate = toDate,
+            EventTriggerDate = DateTime.UtcNow,
+            AppId = GetClaimValue("appid"),
+            AppName = GetClaimValue("app_displayname"),
+            UserRoles = GetRoleValues(),
+            CustomerIds = Array.Empty<string>() // all customers
+        };
 
+        var response = await _aggregateService.AggregateBalancesAsync(command, token);
+
+        return response.IsValid ? Ok(response) : BadRequest(response);
+    }
+    catch (OperationCanceledException)
+    {
+        return StatusCode(StatusCodes.Status499ClientClosedRequest);
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+            LoggingMessages.Exception(nameof(AggregationController), nameof(GetAggregatedBalancesAsync)), ex);
+
+        var errorResponse = new ResponseModel<List<AggregatedCustomerTransactionsDto>>();
+        errorResponse.AddException(ex.Message);
+        return StatusCode(StatusCodes.Status500InternalServerError, errorResponse);
+    }
+}
+
+
+
+*/
+    
 
     [HttpGet("customer/{customerId}")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
