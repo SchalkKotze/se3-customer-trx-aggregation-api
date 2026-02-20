@@ -35,7 +35,7 @@ public class AggregationController : ControllerBase
     }
 
 
-    [HttpPost]
+    [HttpPost("categories")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
     public async Task<IActionResult> AggregateAsync(
@@ -191,49 +191,7 @@ public async Task<IActionResult> GetMonthlySummaryAsync(
             return StatusCode(StatusCodes.Status500InternalServerError);
     }
 }
-
-    [HttpGet("customer/{customerId}")]
-    [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
-    [ApiExplorerSettings(GroupName = "v1")]
-    public async Task<IActionResult> AggregateSingleCustomerAsync(
-        string customerId,
-        [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate,
-        CancellationToken token)
-    {
-        try
-        {
-            var command = new CustomerAggregationCommand
-            {
-                CorrelationId = Guid.NewGuid().ToString(),
-                CustomerIds = new[] { customerId },
-                FromDate = fromDate,
-                ToDate = toDate,
-                EventTriggerDate = DateTime.UtcNow
-            }
-            .WithAppId(GetClaimValue("appid"))
-            .WithAppDisplayName(GetClaimValue("app_displayname"))
-            .WithUserRoles(GetRoleValues());
-
-            var response = await _aggregateService.AggregateClientsAsync(command, token);
-
-            return response.IsValid
-                ? Ok(response.Data.Single())
-                : BadRequest(response);
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(StatusCodes.Status499ClientClosedRequest);
-        }
-        catch (Exception ex)
-        {
-            _loggingService.LogError(
-                LoggingMessages.Exception(nameof(AggregationController), nameof(AggregateSingleCustomerAsync)), ex);
-
-            return StatusCode(StatusCodes.Status500InternalServerError);
-        }
-    }
-
+    
     private string GetClaimValue(string claimType)
     {
         return User.FindFirstValue(claimType) ?? string.Empty;

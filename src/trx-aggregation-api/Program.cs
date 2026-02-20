@@ -46,7 +46,11 @@ builder.InjectSerilog();
 // ----------------------------------------
 //  Controllers
 // ----------------------------------------
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(option =>
+    {
+        option.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 // Uniform model validation responses
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
@@ -74,6 +78,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options 
 // ----------------------------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.InjectSwaggerFilters();
+
 
 // ----------------------------------------
 //  AutoMapper & Fluent Validators
