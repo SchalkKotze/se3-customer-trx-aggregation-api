@@ -134,7 +134,7 @@ public async Task<IActionResult> GetBalancesAsync(
         .WithAppDisplayName(GetClaimValue("app_displayname"))
         .WithUserRoles(GetRoleValues());
 
-        var result = await _aggregateService.GetSpentByCategoryAsync(customerIds, cancellationToken);
+        var result = await _aggregateService.GetSpendByCategoryAsync(command, cancellationToken);
 
         if (!result.IsValid)
             return StatusCode(207, result); // Multi-Status for partial failures

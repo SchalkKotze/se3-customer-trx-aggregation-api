@@ -144,8 +144,7 @@ public class AggregateService : IAggregateService
                 ToDate = command.ToDate,
                 SourceSystem = command.SourceSystem
             };
-
-            // 🔁 REUSE PIPELINE
+            
             var transactions =
                 await GetNormaliseFilterAndCategoriseAsync(filter, token);
 
@@ -219,12 +218,11 @@ public async Task<ResponseModel<List<SpendByCategoryDto>>> GetSpendByCategoryAsy
                 SourceSystem = command.SourceSystem
             };
 
-            // 🔁 SAME PIPELINE
+         
             var transactions =
                 await GetNormaliseFilterAndCategoriseAsync(filter, token);
 
             var spentByCategory = transactions
-                .Where(t => t.Amount < 0) 
                 .GroupBy(t => t.Category)
                 .Select(g => new SpendByCategoryDto
                 {
