@@ -216,3 +216,70 @@ The service is highly extensible. To integrate a new transaction source, develop
 │   └── trx-aggregation-api.Test.csproj\
 ├── trx-aggregation-api.sln\
 
+## Architecture & Design Patterns
+
+This service is designed as a modular, extensible transaction aggregation system, built around a reusable processing pipeline and well-defined abstraction boundaries. The focus is on scalability, resilience, and ease of extension when integrating additional data sources.
+
+Core Aggregation Pipeline
+
+At the heart of the system is a reusable processing pipeline that follows the flow:
+
+Get → Normalise → Filter → Categorise → Aggregate
+
+This pipeline is implemented once and reused across all aggregation endpoints (balances, spend-by-category, monthly summaries, and full transaction aggregation). By centralising this logic, the service guarantees consistent behaviour, validation, and categorisation regardless of the type of aggregation being performed.
+
+This design closely resembles a Chain of Responsibility / Pipeline pattern, where each step has a single responsibility and feeds into the next stage.
+
+## Strategy Pattern — Transaction Sources
+
+External transaction providers are integrated using the Strategy pattern via the ITransactionSource interface.
+
+Each transaction source:
+
+Implements a common contract
+
+Encapsulates its own retrieval logic
+
+Can be added or removed without modifying existing service code
+
+New data sources can be introduced simply by registering a new implementation of ITransactionSource, making the system open for extension but closed for modification.
+
+## Adapter Pattern — External Integrations
+
+Each transaction source also functions as an Adapter, translating external system-specific data formats into a common internal RawTransaction model. This isolates external variability and ensures that downstream logic operates on a consistent data structure.
+
+## Facade Pattern — AggregateService
+
+AggregateService acts as a Facade over the underlying system complexity. Controllers interact with a single application service, while the service itself coordinates:
+
+Data source retrieval
+
+Normalisation
+
+Filtering
+
+Categorisation
+
+Aggregation
+
+Validation and error handling
+
+This keeps controllers thin and ensures that orchestration logic remains in one place.
+
+Parallelised, Resilient Data Retrieval
+
+Transaction sources are queried in parallel using asynchronous execution, allowing the system to scale efficiently as new sources are added. Failures in individual sources are isolated and logged, enabling partial success rather than failing the entire aggregation request.
+
+This approach reflects real-world aggregation system behaviour, where upstream dependencies may be unreliable.
+
+Extensibility & Maintainability
+
+The system is intentionally designed for extensibility:
+
+Adding a new data source requires no changes to existing aggregation logic
+
+New aggregation endpoints reuse the same pipeline
+
+Filtering, categorisation, and validation rules are applied consistently
+
+This makes the service easy to evolve while maintaining predictable behaviour and a clean separation of concerns.
