@@ -14,6 +14,13 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace aggregate_api.Application.Controllers.v1;
 
+//
+//Http Problem Details
+//
+// Fixtures : Unit Testing
+//
+// Extending rediness probes
+//
 
 [ApiController]
 [Authorize]

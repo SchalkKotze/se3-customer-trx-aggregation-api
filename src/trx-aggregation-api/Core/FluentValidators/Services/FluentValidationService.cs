@@ -36,7 +36,6 @@ public class FluentValidationService : IFluentValidationService
         }
         catch (Exception ex)
         {
-            var a = 1;
             return r;
         }
 

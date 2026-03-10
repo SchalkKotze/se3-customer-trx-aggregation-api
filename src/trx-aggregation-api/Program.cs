@@ -15,6 +15,8 @@ using aggregate_api.Infrastructure.Contracts;
 using aggregate_api.Infrastructure.ExternalData;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using StackExchange.Redis;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +44,24 @@ builder.Services.AddAuthorization(); // Required for [Authorize]
 //  Serilog
 // ----------------------------------------
 builder.InjectSerilog();
+
+// Get PostgreSQL connection string from environment variables
+var postgresConnectionString = Environment.GetEnvironmentVariable("POSTGRE_CONNECTION_STRING")
+                               ?? throw new InvalidOperationException("PostgreSQL connection string is not set in environment variables.");
+
+// Initialize the database and insert test data
+InitializeDatabase(postgresConnectionString);
+// Redis
+// Add Redis connection
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisConnectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING");
+    if (string.IsNullOrEmpty(redisConnectionString))
+    {
+        throw new InvalidOperationException("Redis connection string is not set in environment variables.");
+    }
+    return ConnectionMultiplexer.Connect(redisConnectionString);
+});
 
 // ----------------------------------------
 //  Controllers
@@ -89,7 +109,7 @@ builder.Services.InjectFluentValidators();
 // ----------------------------------------
 //  Transaction Sources & Services
 // ----------------------------------------
-builder.Services.AddScoped<ITransactionSource, BankSource>();
+builder.Services.AddScoped<ITransactionSource, BankSourceDatabase>();
 builder.Services.AddScoped<ITransactionSource, CreditSource>();
 builder.Services.AddScoped<ITransactionNormaliser, TransactionNormaliser>();
 builder.Services.AddScoped<ITransactionCategoriser, TransactionCategoriser>();
@@ -121,9 +141,6 @@ if (!string.IsNullOrEmpty(killswitch) && !bool.Parse(killswitch))
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Customer Aggregation API V1");
-        c.SwaggerEndpoint("/swagger/v2/swagger.json", "Customer Aggregation API V2");
-        c.SwaggerEndpoint("/swagger/v3/swagger.json", "Customer Aggregation API V3");
-        c.SwaggerEndpoint("/swagger/v4/swagger.json", "Customer Aggregation API V4");
     });
 }
 
@@ -133,4 +150,40 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+void InitializeDatabase(string connectionString)
+{
+    using var connection = new NpgsqlConnection(connectionString);
+    connection.Open();
+
+    // Create the table if it doesn't exist
+    using (var command = connection.CreateCommand())
+    {
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS BankTransactions (
+                BankTransactionID SERIAL PRIMARY KEY,
+                CustomerID VARCHAR(50) NOT NULL,
+                Source VARCHAR(100),
+                Amount DECIMAL NOT NULL,
+                Description TEXT,
+                TransactiopnDate TIMESTAMP NOT NULL
+            );
+        ";
+        command.ExecuteNonQuery();
+    }
+
+    // Insert test data
+    using (var command = connection.CreateCommand())
+    {
+        command.CommandText = @"
+            INSERT INTO BankTransactions (CustomerID, Source, Amount, Description, TransactiopnDate)
+            VALUES
+                ('CUST001', 'Bank A', 100.50, 'Test transaction 1', NOW()),
+                ('CUST002', 'Bank B', 200.75, 'Test transaction 2', NOW()),
+                ('CUST003', 'Bank C', 300.00, 'Test transaction 3', NOW())
+            ON CONFLICT DO NOTHING;
+        ";
+        command.ExecuteNonQuery();
+    }
+}
 
