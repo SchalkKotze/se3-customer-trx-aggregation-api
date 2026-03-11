@@ -178,9 +178,9 @@ void InitializeDatabase(string connectionString)
         command.CommandText = @"
             INSERT INTO BankTransactions (CustomerID, Source, Amount, Description, TransactiopnDate)
             VALUES
-                ('CUST001', 'Bank A', 100.50, 'Test transaction 1', NOW()),
-                ('CUST002', 'Bank B', 200.75, 'Test transaction 2', NOW()),
-                ('CUST003', 'Bank C', 300.00, 'Test transaction 3', NOW())
+                ('1', 'BX', 100.50, 'Spar', NOW()),
+                ('2', 'BX', 200.75, 'Foodlovers', NOW())
+               
             ON CONFLICT DO NOTHING;
         ";
         command.ExecuteNonQuery();

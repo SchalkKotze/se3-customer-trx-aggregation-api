@@ -1,0 +1,5 @@
+# .dockerignore contents
+**/bin/
+**/obj/
+.git/
+.vs/
