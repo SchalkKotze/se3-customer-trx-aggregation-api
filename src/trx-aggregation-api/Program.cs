@@ -176,6 +176,8 @@ void InitializeDatabase(string connectionString)
     using (var command = connection.CreateCommand())
     {
         command.CommandText = @"
+            TRUNCATE TABLE BankTransactions RESTART IDENTITY; -- Clear existing data and reset ID sequence
+            
             INSERT INTO BankTransactions (CustomerID, Source, Amount, Description, TransactiopnDate)
             VALUES
                 ('1', 'BX', 100.50, 'Spar', NOW()),
