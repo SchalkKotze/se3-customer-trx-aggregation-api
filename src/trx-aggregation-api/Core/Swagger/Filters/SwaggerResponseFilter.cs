@@ -36,21 +36,19 @@ public class SwaggerResponseFilter : IOperationFilter
 
     private void AddCommonResponses(OpenApiOperation operation, OperationFilterContext context)
     {
-        var Errors = new List<string> { "Validation errors" };
-        
-        operation.Responses.Add("400", new OpenApiResponse
+        // Only add if not already present to avoid duplicate-key exceptions.
+        operation.Responses.TryAdd("400", new OpenApiResponse
         {
             Description = "Bad Request",
             Content = new Dictionary<string, OpenApiMediaType>
             {
-                ["application/json"] = new OpenApiMediaType
+                ["application/problem+json"] = new OpenApiMediaType
                 {
-                    Schema = context.SchemaGenerator.GenerateSchema(typeof(List<string>), context.SchemaRepository),
-                    Example = OpenApiHelper.CreateOpenApiArray(Errors)
+                    Schema = context.SchemaGenerator.GenerateSchema(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), context.SchemaRepository)
                 }
             }
         });
-        
+
         operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Unauthorized" });
         operation.Responses.TryAdd("405", new OpenApiResponse { Description = "Method Not Allowed" });
         operation.Responses.TryAdd("500", new OpenApiResponse { Description = "Internal Server Error" });

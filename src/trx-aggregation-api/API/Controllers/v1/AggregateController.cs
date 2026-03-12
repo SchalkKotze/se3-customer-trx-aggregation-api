@@ -15,21 +15,24 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace aggregate_api.Application.Controllers.v1;
 
-/// <summary>
-/// Example controller showing how to implement HTTP Problem Details responses.
-/// Problem Details is defined in RFC 7807 and provides a standardized way to return error information.
-/// </summary>
+//
+//Http Problem Details
+//
+// Fixtures : Unit Testing
+//
+// Extending rediness probes
+//
+
 [ApiController]
 [Authorize]
 [Route("api/v1/aggregation")]
-[Produces("application/json", "application/problem+json")]
-public class AggregationControllerWithProblemDetails : ControllerBase
+public class AggregationController : ControllerBase
 {
     private readonly ILoggingService _loggingService;
     private readonly IMapper _mapper;
     private readonly IAggregateService _aggregateService;
 
-    public AggregationControllerWithProblemDetails(
+    public AggregationController(
         ILoggingService loggingService,
         IMapper mapper,
         IAggregateService aggregateService)
@@ -39,36 +42,21 @@ public class AggregationControllerWithProblemDetails : ControllerBase
         _aggregateService = aggregateService ?? throw new ArgumentNullException(nameof(aggregateService));
     }
 
-    /// <summary>
-    /// Example: POST endpoint returning Problem Details on error
-    /// </summary>
-    /// <response code="200">Successfully aggregated customer transactions.</response>
-    /// <response code="400">Bad request - Invalid input provided.</response>
-    /// <response code="401">Unauthorized - Authentication required.</response>
-    /// <response code="500">Internal server error.</response>
+
     [HttpPost("categories")]
     [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
     [ApiExplorerSettings(GroupName = "v1")]
-    [ProduceResponseType(StatusCodes.Status200OK)]
-    [ProduceResponseType(StatusCodes.Status400BadRequest)]
-    [ProduceResponseType(StatusCodes.Status401Unauthorized)]
-    [ProduceResponseType(StatusCodes.Status500InternalServerError)]
+    [Produces("application/json", "application/problem+json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> AggregateAsync(
         [FromBody] SendAggregateRequest request,
         CancellationToken token)
     {
         try
         {
-            // Validate request
-            if (request == null || request.CustomerIds == null || !request.CustomerIds.Any())
-            {
-                var problem = ProblemDetailsFactory.CreateBadRequestProblem(
-                    detail: "CustomerIds cannot be empty.",
-                    instance: HttpContext.Request.Path
-                );
-                return BadRequest(problem);
-            }
-
             var command = _mapper.Map<CustomerAggregationCommand>(request)
                 .WithAppId(GetClaimValue("appid"))
                 .WithAppDisplayName(GetClaimValue("app_displayname"))
@@ -79,152 +67,129 @@ public class AggregationControllerWithProblemDetails : ControllerBase
 
             if (!response.IsValid)
             {
-                var errors = new Dictionary<string, string[]>
-                {
-                    { "errors", response.Errors.ToArray() }
-                };
-                var problem = ProblemDetailsFactory.CreateValidationErrorsProblem(
-                    errors: errors,
+                return UnprocessableEntity(ProblemDetailsFactory.CreateValidationErrorsProblem(
+                    errors: new Dictionary<string, string[]>
+                    {
+                        { "errors", response.Errors.ToArray() }
+                    },
                     instance: HttpContext.Request.Path
-                );
-                return UnprocessableEntity(problem);
+                ));
             }
+
+            if (response.Data == null || !response.Data.Any())
+                return NoContent();
 
             return Ok(response.Data);
         }
         catch (OperationCanceledException)
         {
-            var problem = ProblemDetailsFactory.CreateProblem(
-                status: StatusCodes.Status499ClientClosedRequest,
-                title: "Client Closed Request",
-                detail: "The request was cancelled by the client.",
-                type: "https://tools.ietf.org/html/rfc7231#section-6.5.9",
-                instance: HttpContext.Request.Path
-            );
-            return StatusCode(StatusCodes.Status499ClientClosedRequest, problem);
+            return StatusCode(StatusCodes.Status499ClientClosedRequest,
+                ProblemDetailsFactory.CreateProblem(
+                    status: StatusCodes.Status499ClientClosedRequest,
+                    title: "Client Closed Request",
+                    detail: "The request was cancelled by the client.",
+                    type: "https://tools.ietf.org/html/rfc7231#section-6.5.9",
+                    instance: HttpContext.Request.Path
+                ));
         }
         catch (Exception ex)
         {
-            var traceId = HttpContext.TraceIdentifier;
             _loggingService.LogError(
-                LoggingMessages.Exception(nameof(AggregationControllerWithProblemDetails), nameof(AggregateAsync)), ex);
+                LoggingMessages.Exception(nameof(AggregationController), nameof(AggregateAsync)), ex);
 
-            var problem = ProblemDetailsFactory.CreateInternalServerErrorProblem(
-                detail: "An unexpected error occurred while processing your request.",
-                instance: HttpContext.Request.Path,
-                traceId: traceId
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                ProblemDetailsFactory.CreateInternalServerErrorProblem(
+                    detail: "An unexpected error occurred while aggregating transactions.",
+                    instance: HttpContext.Request.Path,
+                    traceId: HttpContext.TraceIdentifier
+                ));
         }
     }
 
-    /// <summary>
-    /// Example: GET endpoint returning Problem Details on error
-    /// </summary>
-    /// <response code="200">Successfully retrieved customer balances.</response>
-    /// <response code="400">Bad request - Invalid customer IDs.</response>
-    /// <response code="500">Internal server error.</response>
-    [HttpGet("balances")]
-    [SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
-    [ApiExplorerSettings(GroupName = "v1")]
-    [ProduceResponseType(StatusCodes.Status200OK)]
-    [ProduceResponseType(StatusCodes.Status400BadRequest)]
-    [ProduceResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetBalancesAsync(
-        [FromQuery] List<string> customerIds,
-        [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate,
-        CancellationToken token)
+[HttpGet("balances")]
+[SwaggerOperationFilter(typeof(SwaggerResponseFilter))]
+[ApiExplorerSettings(GroupName = "v1")]
+[Produces("application/json", "application/problem+json")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+[ProducesResponseType(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), StatusCodes.Status500InternalServerError)]
+public async Task<IActionResult> GetBalancesAsync(
+    [FromQuery] List<string> customerIds,
+    [FromQuery] DateTime? fromDate,
+    [FromQuery] DateTime? toDate,
+    CancellationToken token)
+{
+    try
     {
-        try
+        var command = new CustomerAggregationCommand
         {
-            // Validate customer IDs
-            if (customerIds == null || !customerIds.Any())
-            {
-                var problem = ProblemDetailsFactory.CreateBadRequestProblem(
-                    detail: "At least one customer ID must be provided.",
-                    instance: HttpContext.Request.Path
-                );
-                return BadRequest(problem);
-            }
+            CorrelationId = Guid.NewGuid().ToString(),
+            FromDate = fromDate,
+            ToDate = toDate,
+            EventTriggerDate = DateTime.UtcNow,
+            CustomerIds = customerIds
+        }
+        .WithAppId(GetClaimValue("appid"))
+        .WithAppDisplayName(GetClaimValue("app_displayname"))
+        .WithUserRoles(GetRoleValues());
 
-            var command = new CustomerAggregationCommand
-            {
-                CorrelationId = Guid.NewGuid().ToString(),
-                FromDate = fromDate,
-                ToDate = toDate,
-                EventTriggerDate = DateTime.UtcNow,
-                CustomerIds = customerIds
-            }
-            .WithAppId(GetClaimValue("appid"))
-            .WithAppDisplayName(GetClaimValue("app_displayname"))
-            .WithUserRoles(GetRoleValues());
+        var response = await _aggregateService.GetBalancesAsync(command, token);
 
-            var response = await _aggregateService.GetBalancesAsync(command, token);
-
-            if (!response.IsValid)
-            {
-                var errors = new Dictionary<string, string[]>
+        if (!response.IsValid)
+        {
+            return UnprocessableEntity(ProblemDetailsFactory.CreateValidationErrorsProblem(
+                errors: new Dictionary<string, string[]>
                 {
                     { "errors", response.Errors.ToArray() }
-                };
-                var problem = ProblemDetailsFactory.CreateValidationErrorsProblem(
-                    errors: errors,
-                    instance: HttpContext.Request.Path
-                );
-                return UnprocessableEntity(problem);
-            }
-
-            return Ok(response);
+                },
+                instance: HttpContext.Request.Path
+            ));
         }
-        catch (OperationCanceledException)
-        {
-            var problem = ProblemDetailsFactory.CreateProblem(
+
+        if (response.Data == null || !response.Data.Any())
+            return NoContent();
+
+        return Ok(response);
+    }
+    catch (OperationCanceledException)
+    {
+        return StatusCode(StatusCodes.Status499ClientClosedRequest,
+            ProblemDetailsFactory.CreateProblem(
                 status: StatusCodes.Status499ClientClosedRequest,
                 title: "Client Closed Request",
                 detail: "The request was cancelled by the client.",
                 type: "https://tools.ietf.org/html/rfc7231#section-6.5.9",
                 instance: HttpContext.Request.Path
-            );
-            return StatusCode(StatusCodes.Status499ClientClosedRequest, problem);
-        }
-        catch (Exception ex)
-        {
-            var traceId = HttpContext.TraceIdentifier;
-            _loggingService.LogError(
-                LoggingMessages.Exception(nameof(AggregationControllerWithProblemDetails), nameof(GetBalancesAsync)), ex);
+            ));
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+            LoggingMessages.Exception(nameof(AggregationController), nameof(GetBalancesAsync)), ex);
 
-            var problem = ProblemDetailsFactory.CreateInternalServerErrorProblem(
+        return StatusCode(StatusCodes.Status500InternalServerError,
+            ProblemDetailsFactory.CreateInternalServerErrorProblem(
                 detail: "An unexpected error occurred while retrieving balances.",
                 instance: HttpContext.Request.Path,
-                traceId: traceId
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError, problem);
-        }
+                traceId: HttpContext.TraceIdentifier
+            ));
     }
+}
 
-    /// <summary>
-    /// Example: GET endpoint with custom validation
-    /// </summary>
+
     [HttpGet("spent-by-category")]
-    [ProduceResponseType(StatusCodes.Status200OK)]
-    [ProduceResponseType(StatusCodes.Status400BadRequest)]
-    [ProduceResponseType(StatusCodes.Status500InternalServerError)]
+    [Produces("application/json", "application/problem+json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetSpentByCategory(
         [FromQuery] List<string> customerIds,
         CancellationToken cancellationToken)
     {
         try
         {
-            if (customerIds == null || !customerIds.Any())
-            {
-                var problem = ProblemDetailsFactory.CreateBadRequestProblem(
-                    detail: "At least one customer ID must be provided.",
-                    instance: HttpContext.Request.Path
-                );
-                return BadRequest(problem);
-            }
-
             var command = new CustomerAggregationCommand
             {
                 CorrelationId = Guid.NewGuid().ToString(),
@@ -239,140 +204,114 @@ public class AggregationControllerWithProblemDetails : ControllerBase
 
             if (!response.IsValid)
             {
-                var errors = new Dictionary<string, string[]>
-                {
-                    { "errors", response.Errors.ToArray() }
-                };
-                var problem = ProblemDetailsFactory.CreateValidationErrorsProblem(
-                    errors: errors,
+                return UnprocessableEntity(ProblemDetailsFactory.CreateValidationErrorsProblem(
+                    errors: new Dictionary<string, string[]>
+                    {
+                        { "errors", response.Errors.ToArray() }
+                    },
                     instance: HttpContext.Request.Path
-                );
-                return UnprocessableEntity(problem);
+                ));
             }
+
+            if (response.Data == null || !response.Data.Any())
+                return NoContent();
 
             return Ok(response);
         }
         catch (OperationCanceledException)
         {
-            var problem = ProblemDetailsFactory.CreateProblem(
-                status: StatusCodes.Status499ClientClosedRequest,
-                title: "Client Closed Request",
-                detail: "The request was cancelled by the client.",
-                type: "https://tools.ietf.org/html/rfc7231#section-6.5.9",
-                instance: HttpContext.Request.Path
-            );
-            return StatusCode(StatusCodes.Status499ClientClosedRequest, problem);
+            return StatusCode(StatusCodes.Status499ClientClosedRequest,
+                ProblemDetailsFactory.CreateProblem(
+                    status: StatusCodes.Status499ClientClosedRequest,
+                    title: "Client Closed Request",
+                    detail: "The request was cancelled by the client.",
+                    type: "https://tools.ietf.org/html/rfc7231#section-6.5.9",
+                    instance: HttpContext.Request.Path
+                ));
         }
         catch (Exception ex)
         {
-            var traceId = HttpContext.TraceIdentifier;
             _loggingService.LogError(
-                LoggingMessages.Exception(nameof(AggregationControllerWithProblemDetails), nameof(GetSpentByCategory)), ex);
+                LoggingMessages.Exception(nameof(AggregationController), nameof(GetSpentByCategory)), ex);
 
-            var problem = ProblemDetailsFactory.CreateInternalServerErrorProblem(
-                detail: "An unexpected error occurred while retrieving spend by category.",
-                instance: HttpContext.Request.Path,
-                traceId: traceId
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError, problem);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                ProblemDetailsFactory.CreateInternalServerErrorProblem(
+                    detail: "An unexpected error occurred while retrieving spend by category.",
+                    instance: HttpContext.Request.Path,
+                    traceId: HttpContext.TraceIdentifier
+                ));
         }
     }
 
-    /// <summary>
-    /// Example: GET endpoint with date range validation
-    /// </summary>
-    [HttpGet("monthly-summary")]
-    [ApiExplorerSettings(GroupName = "v1")]
-    [ProduceResponseType(StatusCodes.Status200OK)]
-    [ProduceResponseType(StatusCodes.Status400BadRequest)]
-    [ProduceResponseType(StatusCodes.Status422UnprocessableEntity)]
-    [ProduceResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetMonthlySummaryAsync(
-        [FromQuery] List<string> customerIds,
-        [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate,
-        CancellationToken token)
+[HttpGet("monthly-summary")]
+[ApiExplorerSettings(GroupName = "v1")]
+[Produces("application/json", "application/problem+json")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+[ProducesResponseType(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), StatusCodes.Status500InternalServerError)]
+public async Task<IActionResult> GetMonthlySummaryAsync(
+    [FromQuery] List<string> customerIds,
+    [FromQuery] DateTime? fromDate,
+    [FromQuery] DateTime? toDate,
+    CancellationToken token)
+{
+    try
     {
-        try
+        var command = new CustomerAggregationCommand
         {
-            // Validate customer IDs
-            if (customerIds == null || !customerIds.Any())
-            {
-                var problem = ProblemDetailsFactory.CreateBadRequestProblem(
-                    detail: "At least one customer ID must be provided.",
-                    instance: HttpContext.Request.Path
-                );
-                return BadRequest(problem);
-            }
+            CorrelationId = Guid.NewGuid().ToString(),
+            CustomerIds = customerIds,
+            FromDate = fromDate,
+            ToDate = toDate,
+            EventTriggerDate = DateTime.UtcNow
+        }
+        .WithAppId(GetClaimValue("appid"))
+        .WithAppDisplayName(GetClaimValue("app_displayname"))
+        .WithUserRoles(GetRoleValues());
 
-            // Validate date range
-            if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
-            {
-                var errors = new Dictionary<string, string[]>
-                {
-                    { "dateRange", new[] { "fromDate must be before or equal to toDate." } }
-                };
-                var problem = ProblemDetailsFactory.CreateValidationErrorsProblem(
-                    errors: errors,
-                    instance: HttpContext.Request.Path
-                );
-                return UnprocessableEntity(problem);
-            }
+        var response = await _aggregateService.GetMonthlySummaryAsync(command, token);
 
-            var command = new CustomerAggregationCommand
-            {
-                CorrelationId = Guid.NewGuid().ToString(),
-                CustomerIds = customerIds,
-                FromDate = fromDate,
-                ToDate = toDate,
-                EventTriggerDate = DateTime.UtcNow
-            }
-            .WithAppId(GetClaimValue("appid"))
-            .WithAppDisplayName(GetClaimValue("app_displayname"))
-            .WithUserRoles(GetRoleValues());
-
-            var response = await _aggregateService.GetMonthlySummaryAsync(command, token);
-
-            if (!response.IsValid)
-            {
-                var errors = new Dictionary<string, string[]>
+        if (!response.IsValid)
+        {
+            return UnprocessableEntity(ProblemDetailsFactory.CreateValidationErrorsProblem(
+                errors: new Dictionary<string, string[]>
                 {
                     { "errors", response.Errors.ToArray() }
-                };
-                var problem = ProblemDetailsFactory.CreateValidationErrorsProblem(
-                    errors: errors,
-                    instance: HttpContext.Request.Path
-                );
-                return UnprocessableEntity(problem);
-            }
-
-            return Ok(response);
+                },
+                instance: HttpContext.Request.Path
+            ));
         }
-        catch (OperationCanceledException)
-        {
-            var problem = ProblemDetailsFactory.CreateProblem(
+
+        if (response.Data == null || !response.Data.Any())
+            return NoContent();
+
+        return Ok(response);
+    }
+    catch (OperationCanceledException)
+    {
+        return StatusCode(StatusCodes.Status499ClientClosedRequest,
+            ProblemDetailsFactory.CreateProblem(
                 status: StatusCodes.Status499ClientClosedRequest,
                 title: "Client Closed Request",
                 detail: "The request was cancelled by the client.",
                 type: "https://tools.ietf.org/html/rfc7231#section-6.5.9",
                 instance: HttpContext.Request.Path
-            );
-            return StatusCode(StatusCodes.Status499ClientClosedRequest, problem);
-        }
-        catch (Exception ex)
-        {
-            var traceId = HttpContext.TraceIdentifier;
-            _loggingService.LogError(
-                LoggingMessages.Exception(nameof(AggregationControllerWithProblemDetails), nameof(GetMonthlySummaryAsync)), ex);
+            ));
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(
+            LoggingMessages.Exception(nameof(AggregationController), nameof(GetMonthlySummaryAsync)), ex);
 
-            var problem = ProblemDetailsFactory.CreateInternalServerErrorProblem(
+        return StatusCode(StatusCodes.Status500InternalServerError,
+            ProblemDetailsFactory.CreateInternalServerErrorProblem(
                 detail: "An unexpected error occurred while retrieving monthly summary.",
                 instance: HttpContext.Request.Path,
-                traceId: traceId
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError, problem);
-        }
+                traceId: HttpContext.TraceIdentifier
+            ));
     }
+}
 
     private string GetClaimValue(string claimType)
     {
