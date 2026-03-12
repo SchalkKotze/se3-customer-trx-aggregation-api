@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using aggregate_api.Application.Domain.Models;
 using aggregate_api.Application.Infrastructure.Categorisation;
 using aggregate_api.Application.Infrastructure.Normalisation;
 using aggregate_api.Application.Interfaces;
@@ -8,6 +7,7 @@ using aggregate_api.Application.Services.Contracts;
 using aggregate_api.Core.Authentication;
 using aggregate_api.Core.AutoMapper;
 using aggregate_api.Core.FluentValidators;
+using aggregate_api.Core.ProblemDetails;
 using aggregate_api.Core.Serilog;
 using aggregate_api.Core.Swagger;
 using aggregate_api.Infrastructure;
@@ -72,24 +72,27 @@ builder.Services.AddControllers()
         option.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
-// Uniform model validation responses
+// Uniform model validation responses - RFC 7807 Problem Details
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
     {
-        var response = new ResponseModel();
-        foreach (var entry in context.ModelState)
+        var errors = context.ModelState
+            .Where(e => e.Value?.Errors.Count > 0)
+            .ToDictionary(
+                e => e.Key,
+                e => e.Value!.Errors.Select(x => x.ErrorMessage).ToArray()
+            );
+
+        var problem = ProblemDetailsFactory.CreateValidationErrorsProblem(
+            errors: errors,
+            instance: context.HttpContext.Request.Path
+        );
+
+        return new Microsoft.AspNetCore.Mvc.UnprocessableEntityObjectResult(problem)
         {
-            foreach (var errors in entry.Value.Errors)
-            {
-                response.Errors.Add(
-                    string.IsNullOrWhiteSpace(entry.Key)
-                        ? errors.ErrorMessage
-                        : $"{entry.Key}: {errors.ErrorMessage}"
-                );
-            }
-        }
-        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(response);
+            ContentTypes = { "application/problem+json" }
+        };
     };
 });
 
@@ -130,6 +133,8 @@ var app = builder.Build();
 // ----------------------------------------
 //  Middleware
 // ----------------------------------------
+app.UseProblemDetailsExceptionHandling();
+
 app.MapHealthChecks("/health/live");
 app.MapHealthChecks("/health/ready");
 
