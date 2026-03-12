@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
-
+using System.Text.Json;
 using aggregate_api.Application.Domain.Models;
 using aggregate_api.Application.Domain.Requests.v1;
 using aggregate_api.Application.Domain.Responses;
@@ -10,6 +10,7 @@ using aggregate_api.Application.Services;
 using aggregate_api.Core.FluentValidators.Services.Contracts;
 using aggregate_api.Infrastructure;
 using aggregate_api.Infrastructure.Contracts;
+using aggregate_api.Infrastructure.ExternalData;
 using AutoMapper;
 using FluentValidation;
 using FluentValidation.Results;
@@ -232,5 +233,216 @@ public class AggregateServiceTests
         Assert.Equal(customerId, test_result.Data.First().CustomerID);
         Assert.Equal(100,test_result.Data.First().TotalBalance);
         
+    }
+
+    [Fact]
+    public async Task GetBalancesAsync_WhenBankAndCreditTransactionsExist_ReturnsCombinedBalance()
+    {
+        var customerId = "1";
+        var command = new CustomerAggregationCommand
+        {
+            CustomerIds = new List<string> { customerId }
+        };
+
+        var bankTransactions = new List<RawTransaction>
+        {
+            new BankSourceRawTransaction
+            {
+                Source = "BX",
+                CustomerID = customerId,
+                Amount = 100,
+                Description = "Bank deposit",
+                TransactiopnDate = DateTime.UtcNow.AddDays(-1),
+                BankTransactionID = "bank-1"
+            }
+        };
+
+        var creditTransactions = new List<RawTransaction>
+        {
+            new CreditRawTransactions
+            {
+                Source = "CX",
+                Merchant = customerId,
+                AmountCents = 130,
+                Description = "Credit payment",
+                TimeStamp = DateTime.UtcNow.AddDays(-60).ToString("o"),
+                CreditGuid = Guid.NewGuid()
+            }
+        };
+
+        _bankSource
+            .Setup(s => s.GettransactionsAsync(customerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bankTransactions);
+        _creditSource
+            .Setup(s => s.GettransactionsAsync(customerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(creditTransactions);
+
+        _normaliser
+            .Setup(n => n.Normalise(It.IsAny<object>(), It.IsAny<string>()))
+            .Returns((object transaction, string source) =>
+            {
+                return transaction switch
+                {
+                    BankSourceRawTransaction bank => new Transaction
+                    {
+                        CustomerID = bank.CustomerID,
+                        Amount = bank.Amount,
+                        TransactionDate = bank.TransactiopnDate,
+                        Source = bank.Source,
+                        Currency = "ZAR"
+                    },
+                    CreditRawTransactions credit => new Transaction
+                    {
+                        CustomerID = credit.Merchant,
+                        Amount = credit.AmountCents,
+                        TransactionDate = DateTime.Parse(credit.TimeStamp),
+                        Source = credit.Source,
+                        Currency = "ZAR"
+                    },
+                    _ => throw new InvalidOperationException("Unexpected transaction type")
+                };
+            });
+
+        _categoriser
+            .Setup(c => c.Categorise(It.IsAny<IEnumerable<Transaction>>()))
+            .Returns((IEnumerable<Transaction> transactions) => transactions.ToList());
+
+        _fluentValidationService
+            .Setup(f => f.ValidateAggregateCommand(
+                It.IsAny<CustomerAggregationCommand>(),
+                It.IsAny<IValidator<CustomerAggregationCommand>>()))
+            .Returns(new ResponseModel());
+
+        _aggregateValidator
+            .Setup(a => a.Validate(It.IsAny<CustomerAggregationCommand>()))
+            .Returns(new ValidationResult());
+
+        var result = await _service_under_test.GetBalancesAsync(command, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.True(result.IsValid);
+        Assert.Single(result.Data);
+        Assert.Equal(customerId, result.Data.First().CustomerID);
+        Assert.Equal(230, result.Data.First().Balance);
+    }
+
+    [Fact]
+    public async Task GetBalancesAsync_WhenFromDateExcludesOlderCreditTransaction_ReturnsBankBalanceOnly()
+    {
+        var customerId = "1";
+        var now = DateTime.UtcNow;
+        var command = new CustomerAggregationCommand
+        {
+            CustomerIds = new List<string> { customerId },
+            FromDate = now.AddDays(-30),
+            ToDate = now
+        };
+
+        var bankTransactions = new List<RawTransaction>
+        {
+            new BankSourceRawTransaction
+            {
+                Source = "BX",
+                CustomerID = customerId,
+                Amount = 100,
+                Description = "Bank deposit",
+                TransactiopnDate = now.AddDays(-1),
+                BankTransactionID = "bank-1"
+            }
+        };
+
+        var creditTransactions = new List<RawTransaction>
+        {
+            new CreditRawTransactions
+            {
+                Source = "CX",
+                Merchant = customerId,
+                AmountCents = 130,
+                Description = "Credit payment",
+                TimeStamp = now.AddDays(-60).ToString("o"),
+                CreditGuid = Guid.NewGuid()
+            }
+        };
+
+        _bankSource
+            .Setup(s => s.GettransactionsAsync(customerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bankTransactions);
+        _creditSource
+            .Setup(s => s.GettransactionsAsync(customerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(creditTransactions);
+
+        _normaliser
+            .Setup(n => n.Normalise(It.IsAny<object>(), It.IsAny<string>()))
+            .Returns((object transaction, string source) =>
+            {
+                return transaction switch
+                {
+                    BankSourceRawTransaction bank => new Transaction
+                    {
+                        CustomerID = bank.CustomerID,
+                        Amount = bank.Amount,
+                        TransactionDate = bank.TransactiopnDate,
+                        Source = bank.Source,
+                        Currency = "ZAR"
+                    },
+                    CreditRawTransactions credit => new Transaction
+                    {
+                        CustomerID = credit.Merchant,
+                        Amount = credit.AmountCents,
+                        TransactionDate = DateTime.Parse(credit.TimeStamp),
+                        Source = credit.Source,
+                        Currency = "ZAR"
+                    },
+                    _ => throw new InvalidOperationException("Unexpected transaction type")
+                };
+            });
+
+        _categoriser
+            .Setup(c => c.Categorise(It.IsAny<IEnumerable<Transaction>>()))
+            .Returns((IEnumerable<Transaction> transactions) => transactions.ToList());
+
+        _fluentValidationService
+            .Setup(f => f.ValidateAggregateCommand(
+                It.IsAny<CustomerAggregationCommand>(),
+                It.IsAny<IValidator<CustomerAggregationCommand>>()))
+            .Returns(new ResponseModel());
+
+        _aggregateValidator
+            .Setup(a => a.Validate(It.IsAny<CustomerAggregationCommand>()))
+            .Returns(new ValidationResult());
+
+        var result = await _service_under_test.GetBalancesAsync(command, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.True(result.IsValid);
+        Assert.Single(result.Data);
+        Assert.Equal(customerId, result.Data.First().CustomerID);
+        Assert.Equal(100, result.Data.First().Balance);
+    }
+
+    [Fact]
+    public void DeserializeCachedTransactions_WhenBankTransactionsAreCached_ReturnsConcreteBankTransactions()
+    {
+        var cachedPayload = JsonSerializer.Serialize(new List<BankSourceRawTransaction>
+        {
+            new()
+            {
+                Source = "BX",
+                BankTransactionID = "bank-1",
+                CustomerID = "1",
+                Amount = 100.50m,
+                Description = "Spar",
+                TransactiopnDate = new DateTime(2026, 3, 12, 0, 0, 0, DateTimeKind.Utc)
+            }
+        });
+
+        var result = BankSourceDatabase.DeserializeCachedTransactions(cachedPayload);
+
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.IsType<BankSourceRawTransaction>(result.First());
+        Assert.Equal("1", result.First().CustomerID);
+        Assert.Equal(100.50m, result.First().Amount);
+        Assert.Equal("BX", result.First().Source);
     }
 }

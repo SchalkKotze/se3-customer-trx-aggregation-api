@@ -18,22 +18,35 @@ public class BankSourceDatabase : ITransactionSource
         _redisCache = redis.GetDatabase();
     }
 
+    internal static List<BankSourceRawTransaction>? DeserializeCachedTransactions(string cachedData)
+    {
+        return JsonSerializer.Deserialize<List<BankSourceRawTransaction>>(cachedData);
+    }
+
     public async Task<IEnumerable<RawTransaction>> GettransactionsAsync(string customerID, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        // Define a unique cache key
         var cacheKey = $"BankTransactions:{customerID}";
 
-        // Check if data exists in Redis cache
         var cachedData = await _redisCache.StringGetAsync(cacheKey);
         if (!cachedData.IsNullOrEmpty)
         {
-            return JsonSerializer.Deserialize<IEnumerable<RawTransaction>>(cachedData);
+            try
+            {
+                var cachedTransactions = DeserializeCachedTransactions(cachedData!);
+                if (cachedTransactions is not null)
+                {
+                    return cachedTransactions;
+                }
+            }
+            catch (JsonException)
+            {
+                await _redisCache.KeyDeleteAsync(cacheKey);
+            }
         }
 
-        // If not in cache, fetch from PostgreSQL
-        var transactions = new List<RawTransaction>();
+        var transactions = new List<BankSourceRawTransaction>();
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
@@ -61,7 +74,6 @@ public class BankSourceDatabase : ITransactionSource
             }
         }
 
-        // Store the data in Redis cache with an expiration time
         var serializedData = JsonSerializer.Serialize(transactions);
         await _redisCache.StringSetAsync(cacheKey, serializedData, TimeSpan.FromMinutes(10));
 
